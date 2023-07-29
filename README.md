@@ -1,27 +1,20 @@
-# VITS: Conditional Variational Autoencoder with Adversarial Learning for End-to-End Text-to-Speech
+# NaturalSpeech: End-to-End Text to Speech Synthesis with Human-Level Quality
 
-### Jaehyeon Kim, Jungil Kong, and Juhee Son
+### Xu Tan, Jiawei Chen, Haohe Liu, Jian Cong, Chen Zhang, Yanqing Liu, Xi Wang, Yichong Leng, Yuanhao Yi, Lei He, Frank Soong, Tao Qin, Sheng Zhao, Tie-Yan Liu
 
-In our recent [paper](https://arxiv.org/abs/2106.06103), we propose VITS: Conditional Variational Autoencoder with Adversarial Learning for End-to-End Text-to-Speech.
+In our recent [paper](https://arxiv.org/abs/2205.04421), we propose NaturalSpeech: End-to-End Text to Speech Synthesis with Human-Level Quality.
 
-Several recent end-to-end text-to-speech (TTS) models enabling single-stage training and parallel sampling have been proposed, but their sample quality does not match that of two-stage TTS systems. In this work, we present a parallel end-to-end TTS method that generates more natural sounding audio than current two-stage models. Our method adopts variational inference augmented with normalizing flows and an adversarial training process, which improves the expressive power of generative modeling. We also propose a stochastic duration predictor to synthesize speech with diverse rhythms from input text. With the uncertainty modeling over latent variables and the stochastic duration predictor, our method expresses the natural one-to-many relationship in which a text input can be spoken in multiple ways with different pitches and rhythms. A subjective human evaluation (mean opinion score, or MOS) on the LJ Speech, a single speaker dataset, shows that our method outperforms the best publicly available TTS systems and achieves a MOS comparable to ground truth.
+## Microsoft Research Asia \& Microsoft Azure Speech
 
-Visit our [demo](https://jaywalnut310.github.io/vits-demo/index.html) for audio samples.
+Text to speech (TTS) has made rapid progress in both academia and industry in recent years. Some questions naturally arise that whether a TTS system can achieve human-level quality, how to define/judge that quality and how to achieve it. In this paper, we answer these questions by first defining the human-level quality based on the statistical significance of subjective measure and introducing appropriate guidelines to judge it, and then developing a TTS system called that achieves human-level quality on a benchmark dataset. Specifically, we leverage a variational autoencoder (VAE) for end-to-end text to waveform generation, with several key modules to enhance the capacity of the prior from text and reduce the complexity of the posterior from speech, including phoneme pre-training, differentiable duration modeling, bidirectional prior/posterior modeling, and a memory mechanism in VAE. Experiment evaluations on popular LJSpeech dataset show that our proposed achieves $-0.01$ CMOS (comparative mean opinion score) to human recordings at the sentence level, with Wilcoxon signed rank test at p-level $p \gg 0.05$, which demonstrates no statistically significant difference from human recordings for the first time on this dataset.
 
-We also provide the [pretrained models](https://drive.google.com/drive/folders/1ksarh-cJf3F5eKJjLVWY0X1j1qsQqiS2?usp=sharing).
+Visit our [demo](https://speechresearch.github.io/naturalspeech/) for audio samples.
 
-\*\* Update note: Thanks to [Rishikesh (ऋषिकेश)](https://github.com/jaywalnut310/vits/issues/1), our interactive TTS demo is now available on [Colab Notebook](https://colab.research.google.com/drive/1CO61pZizDj7en71NQG_aqqKdGaA_SaBf?usp=sharing).
+### Note
 
-<table style="width:100%">
-  <tr>
-    <th>VITS at training</th>
-    <th>VITS at inference</th>
-  </tr>
-  <tr>
-    <td><img src="pics/fig_1a.png" alt="VITS at training" width="100%"></td>
-    <td><img src="pics/fig_1b.png" alt="VITS at inference" width="100%"></td>
-  </tr>
-</table>
+**This code is a unofficial implementation of NaturalSpeech.**
+
+<img src="pics/fig.png" alt="NaturalSpeech" width="100%" style="width:100%">
 
 ## Installation:
 
@@ -30,25 +23,23 @@ We also provide the [pretrained models](https://drive.google.com/drive/folders/1
 **Clone the repo**
 
 ```shell
-git clone git@github.com:daniilrobnikov/vits.git
-cd vits
+git clone git@github.com:daniilrobnikov/NaturalSpeech.git
+cd NaturalSpeech
 ```
 
 ## Setting up the conda env
 
-This is assuming you have navigated to the `vits` root after cloning it.
+This is assuming you have navigated to the `NaturalSpeech` root after cloning it.
 
-**NOTE:** This is tested under `python3.11` with conda env. For other python versions, you might encounter version conflicts.
 **NOTE:** This is tested under `python3.11` with conda env. For other python versions, you might encounter version conflicts.
 
 **PyTorch 2.0**
 Please refer [requirements.txt](requirements.txt)
-Please refer [requirements.txt](requirements.txt)
 
 ```shell
 # install required packages (for pytorch 2.0)
-conda create -n vits python=3.11
-conda activate vits
+conda create -n NaturalSpeech python=3.11
+conda activate NaturalSpeech
 pip install -r requirements.txt
 ```
 
@@ -113,11 +104,8 @@ ln -s /path/to/VCTK-Corpus/downsampled_wavs DUMMY2
     "n_speakers": 0, // number of speakers in your dataset if you use multi-speaker setting
     "cleaned_text": true // if you already cleaned your text (See text_phonemizer.ipynb), set this to true
   },
-  ...
-    "cleaned_text": true // if you already cleaned your text (See text_phonemizer.ipynb), set this to true
-  },
-  ...
-}
+...
+},
 ```
 
 3. install espeak-ng (optional)
@@ -145,9 +133,6 @@ python train.py -c configs/ljs_base.json -m ljs_base
 
 # VCTK
 python train_ms.py -c configs/vctk_base.json -m vctk_base
-
-# Custom dataset (multi-speaker)
-python train_ms.py -c configs/custom_base.json -m custom_base
 
 # Custom dataset (multi-speaker)
 python train_ms.py -c configs/custom_base.json -m custom_base
@@ -203,14 +188,13 @@ We also provide the [pretrained models](https://drive.google.com/drive/folders/1
 
 ## Acknowledgements
 
-- This repo is based on [VITS](https://github.com/jaywalnut310/vits)
+- This is unofficial repo based on [NaturalSpeech](https://arxiv.org/abs/2205.04421)
 - Text to phones converter for multiple languages is based on [phonemizer](https://github.com/bootphon/phonemizer)
 - We also thank GhatGPT for providing writing assistance.
 
 ## References
 
-- [VITS: Conditional Variational Autoencoder with Adversarial Learning for End-to-End Text-to-Speech](https://arxiv.org/abs/2106.06103)
+- [NaturalSpeech: End-to-End Text to Speech Synthesis with Human-Level Quality](https://arxiv.org/abs/2205.04421)
 - [A TensorFlow implementation of Google's Tacotron speech synthesis with pre-trained model (unofficial)](https://github.com/keithito/tacotron)
 
-# vits
 # NaturalSpeech
