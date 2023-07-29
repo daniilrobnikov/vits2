@@ -1,0 +1,37 @@
+torch
+torchvision
+torchaudio
+
+pyworld
+g2p_en # TODO g2p_en (ARPA) -> phonemizer (IPA)
+phonemizer
+matplotlib
+librosa # TODO Replace with torchaudio
+tqdm
+pandas
+numba
+numpy
+tensorboard
+tensorboardX
+h5py # ? None, Save data, delete
+requests # ? None, HTTP, delete
+scipy # TODO Replace with torchaudio
+sympy # ? None, Mathematical expressions, delete
+PyYAML
+praat-parselmouth # ? None, delete
+pillow
+ipykernel
+pyloudnorm
+pytorch_lightning
+setuptools
+miditoolkit # ? None, delete
+resemblyzer # TODO None, worth a try
+webrtcvad # ? None, Voice Activity Detector, delete
+learn2learn # ? None, delete
+scikit-learn
+scikit-image
+pypinyin # ? None, Chinese pinyin, delete
+textgrid
+pydub # ? None, Manipulate audio, delete
+horology # TODO None, measure time, worth a try
+cython
