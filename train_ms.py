@@ -16,6 +16,7 @@ from torch.cuda.amp import autocast, GradScaler
 
 import commons
 import utils
+from tts_utils.hparams import get_hparams
 from data_utils import TextAudioSpeakerLoader, TextAudioSpeakerCollate, DistributedBucketSampler
 from models import (
     SynthesizerTrn,
@@ -38,7 +39,7 @@ def main():
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "8000"
 
-    hps = utils.get_hparams()
+    hps = get_hparams()
     mp.spawn(
         run,
         nprocs=n_gpus,

@@ -16,4 +16,7 @@ monotonic_align/monotonic_align
 
 test
 test*.*
-filelists/madasr23*
+
+datasets/tts
+configs
+./filelists

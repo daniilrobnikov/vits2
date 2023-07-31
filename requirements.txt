@@ -27,7 +27,7 @@ setuptools
 miditoolkit # ? None, delete
 resemblyzer # TODO None, worth a try
 webrtcvad # ? None, Voice Activity Detector, delete
-learn2learn # ? None, delete
+# learn2learn # ? None, delete
 scikit-learn
 scikit-image
 pypinyin # ? None, Chinese pinyin, delete

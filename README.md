@@ -85,27 +85,20 @@ ln -s /path/to/VCTK-Corpus/downsampled_wavs DUMMY2
 ### Custom dataset
 
 1. create a folder with wav files
-2. create configuration file in [configs](configs/). Change the following fields in `custom_base.json`:
-3. create configuration file in [configs](configs/). Change the following fields in `custom_base.json`:
+2. duplicate the `ljs_base` in `datasets` directory and rename it to `custom_base`
+3. open [custom_base](datasets/custom_base) and change the following fields in `config.yaml`:
 
-```js
-{
-  "data": {
-    "training_files": "filelists/custom_audio_text_train_filelist.txt.cleaned", // path to training cleaned filelist
-    "validation_files": "filelists/custom_audio_text_val_filelist.txt.cleaned", // path to validation cleaned filelist
-    "text_cleaners": ["english_cleaners2"], // text cleaner
-    "bits_per_sample": 16, // bit depth of wav files
-    "training_files": "filelists/custom_audio_text_train_filelist.txt.cleaned", // path to training cleaned filelist
-    "validation_files": "filelists/custom_audio_text_val_filelist.txt.cleaned", // path to validation cleaned filelist
-    "text_cleaners": ["english_cleaners2"], // text cleaner
-    "bits_per_sample": 16, // bit depth of wav files
-    "sampling_rate": 22050, // sampling rate if you resampled your wav files
-    ...
-    "n_speakers": 0, // number of speakers in your dataset if you use multi-speaker setting
-    "cleaned_text": true // if you already cleaned your text (See text_phonemizer.ipynb), set this to true
-  },
-...
-},
+```yaml
+data:
+  training_files: filelists/custom_audio_text_train_filelist.txt.cleaned # path to training cleaned filelist
+  validation_files: filelists/custom_audio_text_val_filelist.txt.cleaned # path to validation cleaned filelist
+  text_cleaners:
+    - english_cleaners2  # text cleaner
+  bits_per_sample: 16 # bit depth of wav files
+  sampling_rate: 22050 # sampling rate if you resampled your wav files
+  ...
+  n_speakers: 0 # number of speakers in your dataset if you use multi-speaker setting
+  cleaned_text: true # if you already cleaned your text (See text_phonemizer.ipynb), set this to true
 ```
 
 3. install espeak-ng (optional)
@@ -129,13 +122,13 @@ ln -s /path/to/custom_dataset DUMMY3
 
 ```shell
 # LJ Speech
-python train.py -c configs/ljs_base.json -m ljs_base
+python train.py -c datasets/ljs_base/config.yaml -m ljs_base
 
 # VCTK
-python train_ms.py -c configs/vctk_base.json -m vctk_base
+python train_ms.py -c datasets/vctk_base/config.yaml -m vctk_base
 
 # Custom dataset (multi-speaker)
-python train_ms.py -c configs/custom_base.json -m custom_base
+python train_ms.py -c datasets/custom_base/config.yaml  -m custom_base
 ```
 
 ## Inference Example
