@@ -4,9 +4,10 @@ import random
 import numpy as np
 import torch
 import torch.utils.data
+import pyworld as pw
 
 import commons
-from mel_processing import spectrogram_torch
+from tts_utils.mel_processing import wav_to_spec
 from utils import load_wav_to_torch, load_filepaths_and_text
 from text import text_to_sequence, cleaned_text_to_sequence
 
@@ -64,17 +65,13 @@ class TextAudioLoader(torch.utils.data.Dataset):
         audio, sampling_rate = load_wav_to_torch(filename)
         assert sampling_rate == self.sampling_rate, f"{sampling_rate} SR doesn't match target {self.sampling_rate} SR"
 
-        assert sampling_rate == self.sampling_rate, f"{sampling_rate} SR doesn't match target {self.sampling_rate} SR"
-
         spec_filename = filename.replace(".wav", ".spec.pt")
         if os.path.exists(spec_filename):
             spec = torch.load(spec_filename)
         else:
-            spec = spectrogram_torch(audio, self.filter_length, self.sampling_rate, self.hop_length, self.win_length, center=False)
-            spec = spectrogram_torch(audio, self.filter_length, self.sampling_rate, self.hop_length, self.win_length, center=False)
+            spec = wav_to_spec(audio, self.filter_length, self.sampling_rate, self.hop_length, self.win_length, center=False)
             spec = torch.squeeze(spec, 0)
             torch.save(spec, spec_filename)
-        return spec, audio
         return spec, audio
 
     def get_text(self, text):
@@ -86,6 +83,58 @@ class TextAudioLoader(torch.utils.data.Dataset):
             text_norm = commons.intersperse(text_norm, 0)
         text_norm = torch.LongTensor(text_norm)
         return text_norm
+
+    def get_pitch(self, wav):
+        # Compute fundamental frequency
+        pitch, t = pw.dio(
+            wav.astype(np.float64),
+            self.sampling_rate,
+            frame_period=self.hop_length / self.sampling_rate * 1000,
+        )
+        pitch = pw.stonemask(wav.astype(np.float64), pitch, t, self.sampling_rate)
+
+        assert np.sum(pitch != 0) > 1, f"Too few ({np.sum(pitch != 0)}) pitch values detected. Audio may be blank."
+
+        # TODO add pitch phoneme averaging
+        # if self.pitch_phoneme_averaging:
+        #     # perform linear interpolation
+        #     nonzero_ids = np.where(pitch != 0)[0]
+        #     interp_fn = interp1d(
+        #         nonzero_ids,
+        #         pitch[nonzero_ids],
+        #         fill_value=(pitch[nonzero_ids[0]], pitch[nonzero_ids[-1]]),
+        #         bounds_error=False,
+        #     )
+        #     pitch = interp_fn(np.arange(0, len(pitch)))
+
+        #     # Phoneme-level average
+        #     pos = 0
+        #     for i, d in enumerate(duration):
+        #         if d > 0:
+        #             pitch[i] = np.mean(pitch[pos : pos + d])
+        #         else:
+        #             pitch[i] = 0
+        #         pos += d
+        #     pitch = pitch[: len(duration)]
+
+        return pitch
+
+    def get_energy(self, spec):
+        energy = torch.norm(spec, dim=0)
+
+        # TODO add energy phoneme averaging
+        # if self.energy_phoneme_averaging:
+        #     # Phoneme-level average
+        #     pos = 0
+        #     for i, d in enumerate(duration):
+        #         if d > 0:
+        #             energy[i] = np.mean(energy[pos : pos + d])
+        #         else:
+        #             energy[i] = 0
+        #         pos += d
+        #     energy = energy[: len(duration)]
+
+        return energy
 
     def __getitem__(self, index):
         return self.get_audio_text_pair(self.audiopaths_and_text[index])
@@ -200,19 +249,13 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         audio, sampling_rate = load_wav_to_torch(filename)
         assert sampling_rate == self.sampling_rate, f"{sampling_rate} SR doesn't match target {self.sampling_rate} SR"
 
-        assert sampling_rate == self.sampling_rate, f"{sampling_rate} SR doesn't match target {self.sampling_rate} SR"
-
         spec_filename = filename.replace(".wav", ".spec.pt")
         if os.path.exists(spec_filename):
             spec = torch.load(spec_filename)
         else:
-            spec = spectrogram_torch(audio, self.filter_length, self.sampling_rate, self.hop_length, self.win_length, center=False)
-            spec = spectrogram_torch(audio, self.filter_length, self.sampling_rate, self.hop_length, self.win_length, center=False)
+            spec = wav_to_spec(audio, self.filter_length, self.sampling_rate, self.hop_length, self.win_length, center=False)
             spec = torch.squeeze(spec, 0)
-            splits = ["split1", "split2", "split3", "split4"]
-            for split in splits:
-                if split in spec_filename:
-                    torch.save(spec, spec_filename)
+            torch.save(spec, spec_filename)
         return spec, audio
 
     def get_text(self, text):

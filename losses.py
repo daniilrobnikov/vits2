@@ -1,10 +1,11 @@
 import torch
 import torch.nn.functional as F
+from typing import List
 
 import commons
 
 
-def feature_loss(fmap_r, fmap_g):
+def feature_loss(fmap_r: List[torch.Tensor], fmap_g: List[torch.Tensor]):
     loss = 0
     for dr, dg in zip(fmap_r, fmap_g):
         for rl, gl in zip(dr, dg):
@@ -15,7 +16,7 @@ def feature_loss(fmap_r, fmap_g):
     return loss * 2
 
 
-def discriminator_loss(disc_real_outputs, disc_generated_outputs):
+def discriminator_loss(disc_real_outputs: List[torch.Tensor], disc_generated_outputs: List[torch.Tensor]):
     loss = 0
     r_losses = []
     g_losses = []
@@ -31,7 +32,7 @@ def discriminator_loss(disc_real_outputs, disc_generated_outputs):
     return loss, r_losses, g_losses
 
 
-def generator_loss(disc_outputs):
+def generator_loss(disc_outputs: List[torch.Tensor]):
     loss = 0
     gen_losses = []
     for dg in disc_outputs:
@@ -43,7 +44,7 @@ def generator_loss(disc_outputs):
     return loss, gen_losses
 
 
-def kl_loss(z_p, logs_q, m_p, logs_p, z_mask):
+def kl_loss(z_p: torch.Tensor, logs_q: torch.Tensor, m_p: torch.Tensor, logs_p: torch.Tensor, z_mask: torch.Tensor):
     """
     z_p, logs_q: [b, h, t_t]
     m_p, logs_p: [b, h, t_t]

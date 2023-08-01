@@ -90,15 +90,15 @@ ln -s /path/to/VCTK-Corpus/downsampled_wavs DUMMY2
 
 ```yaml
 data:
-  training_files: filelists/custom_audio_text_train_filelist.txt.cleaned # path to training cleaned filelist
-  validation_files: filelists/custom_audio_text_val_filelist.txt.cleaned # path to validation cleaned filelist
+  training_files: datasets/custom_base/filelists/custom_audio_text_train_filelist.txt.cleaned
+  validation_files: datasets/custom_base/filelists/custom_audio_text_val_filelist.txt.cleaned
   text_cleaners:
     - english_cleaners2  # text cleaner
   bits_per_sample: 16 # bit depth of wav files
   sampling_rate: 22050 # sampling rate if you resampled your wav files
   ...
   n_speakers: 0 # number of speakers in your dataset if you use multi-speaker setting
-  cleaned_text: true # if you already cleaned your text (See text_phonemizer.ipynb), set this to true
+  cleaned_text: true # See text_phonemizer.ipynb
 ```
 
 3. install espeak-ng (optional)

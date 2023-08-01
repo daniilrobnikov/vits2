@@ -436,16 +436,16 @@ class SynthesizerTrn(nn.Module):
         with torch.no_grad():
             # negative cross-entropy
             s_p_sq_r = torch.exp(-2 * logs_p)  # [b, d, t]
-            neg_cent1 = torch.sum(-0.5 * math.log(2 * math.pi) - logs_p, [1], keepdim=True)  # [b, 1, t_s]
-            neg_cent2 = torch.matmul(-0.5 * (z_p**2).transpose(1, 2), s_p_sq_r)  # [b, t_t, d] x [b, d, t_s] = [b, t_t, t_s]
-            neg_cent3 = torch.matmul(z_p.transpose(1, 2), (m_p * s_p_sq_r))  # [b, t_t, d] x [b, d, t_s] = [b, t_t, t_s]
-            neg_cent4 = torch.sum(-0.5 * (m_p**2) * s_p_sq_r, [1], keepdim=True)  # [b, 1, t_s]
-            neg_cent = neg_cent1 + neg_cent2 + neg_cent3 + neg_cent4
+            neg_c_ent1 = torch.sum(-0.5 * math.log(2 * math.pi) - logs_p, [1], keepdim=True)  # [b, 1, t_s]
+            neg_c_ent2 = torch.matmul(-0.5 * (z_p**2).transpose(1, 2), s_p_sq_r)  # [b, t_t, d] x [b, d, t_s] = [b, t_t, t_s]
+            neg_c_ent3 = torch.matmul(z_p.transpose(1, 2), (m_p * s_p_sq_r))  # [b, t_t, d] x [b, d, t_s] = [b, t_t, t_s]
+            neg_c_ent4 = torch.sum(-0.5 * (m_p**2) * s_p_sq_r, [1], keepdim=True)  # [b, 1, t_s]
+            neg_c_ent = neg_c_ent1 + neg_c_ent2 + neg_c_ent3 + neg_c_ent4  # [b, t_t, t_s]
 
-            attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
-            attn = monotonic_align.maximum_path(neg_cent, attn_mask.squeeze(1)).unsqueeze(1).detach()
+            attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)  # [b, 1, t_s] * [b, t_t, 1] = [b, t_t, t_s]
+            attn = monotonic_align.maximum_path(neg_c_ent, attn_mask.squeeze(1)).unsqueeze(1).detach()  # [b, 1, t_t, t_s]
 
-        w = attn.sum(2)
+        w = attn.sum(2)  # [b, 1, t_s]
         if self.use_sdp:
             l_length = self.dp(x, x_mask, w, g=g)
             l_length = l_length / torch.sum(x_mask)
