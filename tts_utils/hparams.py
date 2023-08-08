@@ -6,10 +6,8 @@ import os
 import yaml
 
 
+# TODO change model_dir implementation, add log_dir
 class HParams:
-    sampling_rate = 22050
-    model_dir = "./datasets/base"
-
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             if type(v) == dict:

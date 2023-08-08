@@ -7,7 +7,7 @@ import torch.utils.data
 import pyworld as pw
 
 import commons
-from tts_utils.mel_processing import wav_to_spec
+from tts_utils.mel_processing import wav_to_spec, wav_to_mel
 from utils import load_wav_to_torch, load_filepaths_and_text
 from text import text_to_sequence, cleaned_text_to_sequence
 
@@ -19,19 +19,23 @@ class TextAudioLoader(torch.utils.data.Dataset):
     3) computes spectrograms from audio files.
     """
 
-    def __init__(self, audiopaths_and_text, hparams):
+    def __init__(self, audiopaths_and_text, hps_data):
         self.audiopaths_and_text = load_filepaths_and_text(audiopaths_and_text)
-        self.text_cleaners = hparams.text_cleaners
-        self.sampling_rate = hparams.sampling_rate
-        self.filter_length = hparams.filter_length
-        self.hop_length = hparams.hop_length
-        self.win_length = hparams.win_length
+        self.text_cleaners = hps_data.text_cleaners
+        self.sample_rate = hps_data.sample_rate
+        self.n_fft = hps_data.n_fft
+        self.hop_length = hps_data.hop_length
+        self.win_length = hps_data.win_length
+        self.n_mels = hps_data.n_mels
+        self.f_min = hps_data.f_min
+        self.f_max = hps_data.f_max
+        self.use_mel = hps_data.use_mel
 
-        self.cleaned_text = getattr(hparams, "cleaned_text", False)
+        self.cleaned_text = getattr(hps_data, "cleaned_text", False)
 
-        self.add_blank = hparams.add_blank
-        self.min_text_len = getattr(hparams, "min_text_len", 1)
-        self.max_text_len = getattr(hparams, "max_text_len", 190)
+        self.add_blank = hps_data.add_blank
+        self.min_text_len = getattr(hps_data, "min_text_len", 1)
+        self.max_text_len = getattr(hps_data, "max_text_len", 190)
 
         random.seed(1234)
         random.shuffle(self.audiopaths_and_text)
@@ -58,21 +62,9 @@ class TextAudioLoader(torch.utils.data.Dataset):
         # separate filename and text
         audiopath, text = audiopath_and_text[0], audiopath_and_text[1]
         text = self.get_text(text)
-        spec, wav = self.get_audio(audiopath)
+        wav = self.get_audio(audiopath)
+        spec = self.get_spec(audiopath, wav)
         return (text, spec, wav)
-
-    def get_audio(self, filename):
-        audio, sampling_rate = load_wav_to_torch(filename)
-        assert sampling_rate == self.sampling_rate, f"{sampling_rate} SR doesn't match target {self.sampling_rate} SR"
-
-        spec_filename = filename.replace(".wav", ".spec.pt")
-        if os.path.exists(spec_filename):
-            spec = torch.load(spec_filename)
-        else:
-            spec = wav_to_spec(audio, self.filter_length, self.sampling_rate, self.hop_length, self.win_length, center=False)
-            spec = torch.squeeze(spec, 0)
-            torch.save(spec, spec_filename)
-        return spec, audio
 
     def get_text(self, text):
         if self.cleaned_text:
@@ -84,14 +76,37 @@ class TextAudioLoader(torch.utils.data.Dataset):
         text_norm = torch.LongTensor(text_norm)
         return text_norm
 
+    def get_audio(self, filename):
+        audio, sample_rate = load_wav_to_torch(filename)
+        assert sample_rate == self.sample_rate, f"{sample_rate} SR doesn't match target {self.sample_rate} SR"
+        return audio
+
+    def get_spec(self, filename: str, wav):
+        if self.use_mel:
+            spec_filename = filename.replace(".wav", ".mel.pt")
+        else:
+            spec_filename = filename.replace(".wav", ".spec.pt")
+
+        if os.path.exists(spec_filename):
+            spec = torch.load(spec_filename)
+        else:
+            if self.use_mel:
+                spec = wav_to_mel(wav, self.n_fft, self.n_mels, self.sample_rate, self.hop_length, self.win_length, self.f_min, self.f_max, center=False)
+            else:
+                spec = wav_to_spec(wav, self.n_fft, self.sample_rate, self.hop_length, self.win_length, center=False)
+            spec = torch.squeeze(spec, 0)
+            torch.save(spec, spec_filename)
+
+        return spec
+
     def get_pitch(self, wav):
         # Compute fundamental frequency
         pitch, t = pw.dio(
             wav.astype(np.float64),
-            self.sampling_rate,
-            frame_period=self.hop_length / self.sampling_rate * 1000,
+            self.sample_rate,
+            frame_period=self.hop_length / self.sample_rate * 1000,
         )
-        pitch = pw.stonemask(wav.astype(np.float64), pitch, t, self.sampling_rate)
+        pitch = pw.stonemask(wav.astype(np.float64), pitch, t, self.sample_rate)
 
         assert np.sum(pitch != 0) > 1, f"Too few ({np.sum(pitch != 0)}) pitch values detected. Audio may be blank."
 
@@ -202,19 +217,23 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
     3) computes spectrograms from audio files.
     """
 
-    def __init__(self, audiopaths_sid_text, hparams):
+    def __init__(self, audiopaths_sid_text, hps_data):
         self.audiopaths_sid_text = load_filepaths_and_text(audiopaths_sid_text)
-        self.text_cleaners = hparams.text_cleaners
-        self.sampling_rate = hparams.sampling_rate
-        self.filter_length = hparams.filter_length
-        self.hop_length = hparams.hop_length
-        self.win_length = hparams.win_length
+        self.text_cleaners = hps_data.text_cleaners
+        self.sample_rate = hps_data.sample_rate
+        self.n_fft = hps_data.n_fft
+        self.hop_length = hps_data.hop_length
+        self.win_length = hps_data.win_length
+        self.n_mels = hps_data.n_mels
+        self.f_min = hps_data.f_min
+        self.f_max = hps_data.f_max
+        self.use_mel = hps_data.use_mel
 
-        self.cleaned_text = getattr(hparams, "cleaned_text", False)
+        self.cleaned_text = getattr(hps_data, "cleaned_text", False)
 
-        self.add_blank = hparams.add_blank
-        self.min_text_len = getattr(hparams, "min_text_len", 1)
-        self.max_text_len = getattr(hparams, "max_text_len", 190)
+        self.add_blank = hps_data.add_blank
+        self.min_text_len = getattr(hps_data, "min_text_len", 1)
+        self.max_text_len = getattr(hps_data, "max_text_len", 190)
 
         random.seed(1234)
         random.shuffle(self.audiopaths_sid_text)
@@ -241,22 +260,10 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         # separate filename, speaker_id and text
         audiopath, sid, text = audiopath_sid_text[0], audiopath_sid_text[1], audiopath_sid_text[2]
         text = self.get_text(text)
-        spec, wav = self.get_audio(audiopath)
+        wav = self.get_audio(audiopath)
+        spec = self.get_spec(audiopath, wav)
         sid = self.get_sid(sid)
         return (text, spec, wav, sid)
-
-    def get_audio(self, filename):
-        audio, sampling_rate = load_wav_to_torch(filename)
-        assert sampling_rate == self.sampling_rate, f"{sampling_rate} SR doesn't match target {self.sampling_rate} SR"
-
-        spec_filename = filename.replace(".wav", ".spec.pt")
-        if os.path.exists(spec_filename):
-            spec = torch.load(spec_filename)
-        else:
-            spec = wav_to_spec(audio, self.filter_length, self.sampling_rate, self.hop_length, self.win_length, center=False)
-            spec = torch.squeeze(spec, 0)
-            torch.save(spec, spec_filename)
-        return spec, audio
 
     def get_text(self, text):
         if self.cleaned_text:
@@ -267,6 +274,29 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
             text_norm = commons.intersperse(text_norm, 0)
         text_norm = torch.LongTensor(text_norm)
         return text_norm
+
+    def get_audio(self, filename):
+        audio, sample_rate = load_wav_to_torch(filename)
+        assert sample_rate == self.sample_rate, f"{sample_rate} SR doesn't match target {self.sample_rate} SR"
+        return audio
+
+    def get_spec(self, filename: str, wav):
+        if self.use_mel:
+            spec_filename = filename.replace(".wav", ".mel.pt")
+        else:
+            spec_filename = filename.replace(".wav", ".spec.pt")
+
+        if os.path.exists(spec_filename):
+            spec = torch.load(spec_filename)
+        else:
+            if self.use_mel:
+                spec = wav_to_mel(wav, self.n_fft, self.n_mels, self.sample_rate, self.hop_length, self.win_length, self.f_min, self.f_max, center=False)
+            else:
+                spec = wav_to_spec(wav, self.n_fft, self.sample_rate, self.hop_length, self.win_length, center=False)
+            spec = torch.squeeze(spec, 0)
+            torch.save(spec, spec_filename)
+
+        return spec
 
     def get_sid(self, sid):
         sid = torch.LongTensor([int(sid)])

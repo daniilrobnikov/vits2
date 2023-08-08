@@ -41,6 +41,8 @@ Please refer [requirements.txt](requirements.txt)
 conda create -n NaturalSpeech python=3.11
 conda activate NaturalSpeech
 pip install -r requirements.txt
+
+conda env config vars set PYTHONPATH="/path/to/NaturalSpeech"
 ```
 
 ## Download datasets
@@ -58,9 +60,17 @@ There are three options you can choose from: LJ Speech, VCTK, and custom dataset
 ```shell
 wget https://data.keithito.com/data/speech/LJSpeech-1.1.tar.bz2
 tar -xvf LJSpeech-1.1.tar.bz2
+cd LJSpeech-1.1/wavs
+rm -rf wavs
 ```
 
-2. rename or create a link to the dataset folder
+2. save high-resolution mel-spectrograms. See [audio_mel.py](preprocess/audio_mel.py)
+
+```shell
+python preprocess/audio_mel.py --data_dir /path/to/LJSpeech-1.1
+```
+
+3. rename or create a link to the dataset folder
 
 ```shell
 ln -s /path/to/LJSpeech-1.1/wavs DUMMY1
@@ -76,7 +86,14 @@ unzip VCTK-Corpus-0.92.zip
 ```
 
 2. (optional): downsample the audio files to 22050 Hz. See [audio_resample.ipynb](preprocess/audio_resample.ipynb)
-3. rename or create a link to the dataset folder
+
+3. save high-resolution mel-spectrograms. See [audio_mel.py](preprocess/audio_mel.py)
+
+```shell
+python preprocess/audio_mel.py --data_dir /path/to/VCTK-Corpus-0.92
+```
+
+4. rename or create a link to the dataset folder
 
 ```shell
 ln -s /path/to/VCTK-Corpus/downsampled_wavs DUMMY2
@@ -95,28 +112,35 @@ data:
   text_cleaners:
     - english_cleaners2  # text cleaner
   bits_per_sample: 16 # bit depth of wav files
-  sampling_rate: 22050 # sampling rate if you resampled your wav files
+  sample_rate: 22050 # sampling rate if you resampled your wav files
   ...
   n_speakers: 0 # number of speakers in your dataset if you use multi-speaker setting
   cleaned_text: true # See text_phonemizer.ipynb
 ```
 
-3. install espeak-ng (optional)
+4. save high-resolution mel-spectrograms. See [audio_mel.py](preprocess/audio_mel.py)
+
+```shell
+python preprocess/audio_mel.py --data_dir /path/to/custom_dataset
+```
+
+5. rename or create a link to the dataset folder. Please refer [text_split.ipynb](preprocess/text_split.ipynb)
+
+```shell
+ln -s /path/to/custom_dataset DUMMY3
+```
+
+6. install espeak-ng (optional)
 
 **NOTE:** This is required for the [preprocess.py](preprocess.py) and [inference.ipynb](inference.ipynb) notebook to work. If you don't need it, you can skip this step. Please refer [espeak-ng](https://github.com/espeak-ng/espeak-ng)
 
-4. preprocess text
+7. preprocess text
 
 You can do this step by step way:
 
 - create a dataset of text files. See [text_dataset.ipynb](preprocess/text_dataset.ipynb)
 - phonemize or just clean up the text. Please refer [text_phonemizer.ipynb](preprocess/text_phonemizer.ipynb)
 - create filelists and cleaned version with train test split. See [text_split.ipynb](preprocess/text_split.ipynb)
-- rename or create a link to the dataset folder. Please refer [text_split.ipynb](preprocess/text_split.ipynb)
-
-```shell
-ln -s /path/to/custom_dataset DUMMY3
-```
 
 ## Training Examples
 
@@ -172,12 +196,18 @@ We also provide the [pretrained models](https://drive.google.com/drive/folders/1
   - [ ] training the model for Bengali language. (For now: 55_000 iterations, ~26 epochs)
   - [ ] add pretrained models for multiple languages
 - [ ] future work
+
   - [ ] update model to naturalspeech. Please refer [naturalspeech](https://arxiv.org/abs/2205.04421)
   - [ ] add support for streaming. Please refer [vits_chinese](https://github.com/PlayVoice/vits_chinese/blob/master/text/symbols.py)
   - [ ] update naturalspeech to multi-speaker
   - [ ] replace speakers with multi-speaker embeddings
   - [ ] replace speakers with multilingual training. Each speaker is a language with thhe same IPA symbols
   - [ ] add support for in-context learning
+
+  - [ ] use high-resolution mel-spectrograms in training
+  - [ ] compare IPA with ARPABET phonemizer
+  - [ ] test different loss functions
+  - [ ] test different optimizers, hyperparameters, and schedulers
 
 ## Acknowledgements
 
