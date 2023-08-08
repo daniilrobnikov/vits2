@@ -21,16 +21,17 @@ data:
   text_cleaners:
     - english_cleaners2
   bits_per_sample: 16
-  sampling_rate: 22050
-  filter_length: 1024
+  sample_rate: 22050
+  n_fft: 1024
   hop_length: 256
   win_length: 1024
-  n_mel_channels: 80
-  mel_fmin: 0
-  mel_fmax:
+  n_mels: 80
+  f_min: 0
+  f_max:
   add_blank: true
   n_speakers: 109
   cleaned_text: true
+  use_mel: true
 
 model:
   inter_channels: 192

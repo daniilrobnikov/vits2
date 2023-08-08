@@ -15,7 +15,7 @@ monotonic_align/monotonic_align
 .DS_Store
 
 test
-test*.*
+# test*.*
 
 datasets/tts
 configs
