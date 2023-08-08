@@ -338,7 +338,7 @@ class DiscriminatorS(torch.nn.Module):
 class MultiPeriodDiscriminator(torch.nn.Module):
     def __init__(self, use_spectral_norm=False):
         super(MultiPeriodDiscriminator, self).__init__()
-        periods = [2, 3, 5, 7, 11]
+        periods = [2, 3, 5, 7, 11]  # [1, 2, 3, 5, 7, 11]
 
         discs = [DiscriminatorS(use_spectral_norm=use_spectral_norm)]
         discs = discs + [DiscriminatorP(i, use_spectral_norm=use_spectral_norm) for i in periods]
@@ -443,7 +443,7 @@ class SynthesizerTrn(nn.Module):
             neg_c_ent = neg_c_ent1 + neg_c_ent2 + neg_c_ent3 + neg_c_ent4  # [b, t_t, t_s]
 
             attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)  # [b, 1, t_s] * [b, t_t, 1] = [b, t_t, t_s]
-            attn = monotonic_align.maximum_path(neg_c_ent, attn_mask.squeeze(1)).unsqueeze(1).detach()  # [b, 1, t_t, t_s]
+            attn = monotonic_align.maximum_path_cuda(neg_c_ent, attn_mask.squeeze(1)).unsqueeze(1).detach()  # [b, 1, t_t, t_s]
 
         w = attn.sum(2)  # [b, 1, t_s]
         if self.use_sdp:

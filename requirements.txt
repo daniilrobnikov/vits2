@@ -3,10 +3,10 @@ torchvision
 torchaudio
 
 pyworld
-g2p_en # TODO g2p_en (ARPA) -> phonemizer (IPA)
 phonemizer
+g2p # TODO g2p (ARPA) -> phonemizer (IPA)
+jiwer
 matplotlib
-librosa # TODO Replace with torchaudio
 tqdm
 pandas
 numba
@@ -15,8 +15,6 @@ tensorboard
 tensorboardX
 h5py # ? None, Save data, delete
 requests # ? None, HTTP, delete
-scipy # TODO Replace with torchaudio
-sympy # ? None, Mathematical expressions, delete
 PyYAML
 praat-parselmouth # ? None, delete
 pillow

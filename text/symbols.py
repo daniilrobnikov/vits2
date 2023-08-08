@@ -8,11 +8,13 @@ _punctuation = ';:,.!?¡¿—…"«»“” '
 _letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 _letters_ipa = "ɑɐɒæɓʙβɔɕçɗɖðʤəɘɚɛɜɝɞɟʄɡɠɢʛɦɧħɥʜɨɪʝɭɬɫɮʟɱɯɰŋɳɲɴøɵɸθœɶʘɹɺɾɻʀʁɽʂʃʈʧʉʊʋⱱʌɣɤʍχʎʏʑʐʒʔʡʕʢǀǁǂǃˈˌːˑʼʴʰʱʲʷˠˤ˞↓↑→↗↘'̩'ᵻ"
 
-_data_letters_ipa = "̃"
-_data_letters = "ঁংঃঅআইঈউঊঋএঐওঔকখগঘঙচছজঝঞটঠডঢণতথদধনপফবভমযরলশষসহ়ািীুূৃেৈোৌ্ৎড়ঢ়য়ৠ"
+# _data_letters_ipa = "̃"
+# _data_letters = "ঁংঃঅআইঈউঊঋএঐওঔকখগঘঙচছজঝঞটঠডঢণতথদধনপফবভমযরলশষসহ়ািীুূৃেৈোৌ্ৎড়ঢ়য়ৠ"
+# symbols = [_pad] + list(_punctuation) + list(_letters) + list(_letters_ipa)
 
 # Export all symbols:
-symbols = [_pad] + list(_punctuation) + list(_letters) + list(_letters_ipa) + list(_data_letters_ipa) + list(_data_letters)
+_symbols = ' !",.:;?abcdefhijklmnopqrstuvwxyz¡«»¿æçðøħŋœǀǁǂǃɐɑɒɓɔɕɖɗɘəɚɛɜɝɞɟɠɡɢɣɤɥɦɧɨɪɫɬɭɮɯɰɱɲɳɴɵɶɸɹɺɻɽɾʀʁʂʃʄʈʉʊʋʌʍʎʏʐʑʒʔʕʘʙʛʜʝʟʡʢʰʲʷʼˈˌːˑ˔˞ˠˡˤ˥˦˧˨˩̴̘̙̜̝̞̟̠̤̥̩̪̬̮̯̰̹̺̻̼͈͉̃̆̈̊̽͆̚͡βθχᵝᶣ—‖“”…‿ⁿ↑↓↗↘◌ⱱꜛꜜ︎ᵻ'
+symbols = list(_symbols)
 
 # Special symbol ids
 SPACE_ID = symbols.index(" ")

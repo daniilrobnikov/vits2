@@ -9,9 +9,6 @@ import numpy as np
 import torch
 import torchaudio
 
-# TODO: remove scipy dependency
-# from scipy.io.wavfile import read
-
 MATPLOTLIB_FLAG = False
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -55,7 +52,7 @@ def save_checkpoint(model, optimizer, learning_rate, iteration, checkpoint_path)
     torch.save({"model": state_dict, "iteration": iteration, "optimizer": optimizer.state_dict(), "learning_rate": learning_rate}, checkpoint_path)
 
 
-def summarize(writer, global_step, scalars={}, histograms={}, images={}, audios={}, sampling_rate=22050):
+def summarize(writer, global_step, scalars={}, histograms={}, images={}, audios={}, sample_rate=22050):
     for k, v in scalars.items():
         writer.add_scalar(k, v, global_step)
     for k, v in histograms.items():
@@ -63,7 +60,7 @@ def summarize(writer, global_step, scalars={}, histograms={}, images={}, audios=
     for k, v in images.items():
         writer.add_image(k, v, global_step, dataformats="HWC")
     for k, v in audios.items():
-        writer.add_audio(k, v, global_step, sampling_rate)
+        writer.add_audio(k, v, global_step, sample_rate)
 
 
 def latest_checkpoint_path(dir_path, regex="G_*.pth"):
@@ -136,10 +133,10 @@ def load_wav_to_torch(full_path):
 
     Returns:
         waveform (torch.FloatTensor): Stereo audio signal [channel, time] in range [-1, 1]
-        sampling_rate (int): Sampling rate of audio signal (Hz)
+        sample_rate (int): Sampling rate of audio signal (Hz)
     """
-    waveform, sampling_rate = torchaudio.load(full_path)
-    return waveform, sampling_rate
+    waveform, sample_rate = torchaudio.load(full_path)
+    return waveform, sample_rate
 
 
 def load_filepaths_and_text(filename, split="|"):
