@@ -18,7 +18,8 @@ train:
 data:
   training_files: datasets/vctk_base/filelists/vctk_audio_sid_text_train_filelist.txt.cleaned
   validation_files: datasets/vctk_base/filelists/vctk_audio_sid_text_val_filelist.txt.cleaned
-  text_cleaners: ["phonemize_text"]
+  text_cleaners:
+    - phonemize_text
   bits_per_sample: 16
   sample_rate: 22050
   n_fft: 1024

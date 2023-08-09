@@ -26,7 +26,8 @@ evaluate:
 data:
   training_files: datasets/ljs_base/filelists/train.txt
   validation_files: datasets/ljs_base/filelists/val.txt
-  text_cleaners: ["phonemize_text"]
+  text_cleaners:
+    - phonemize_text
   bits_per_sample: 16
   sample_rate: 22050
   n_fft: 65536
