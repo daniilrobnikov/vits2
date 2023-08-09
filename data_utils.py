@@ -4,12 +4,11 @@ import random
 import numpy as np
 import torch
 import torch.utils.data
-import pyworld as pw
 
 import commons
 from tts_utils.mel_processing import wav_to_spec, wav_to_mel
 from utils import load_wav_to_torch, load_filepaths_and_text
-from text import text_to_sequence, cleaned_text_to_sequence
+from text import text_to_sequence, cleaned_text_to_sequence, PAD_ID
 
 
 class TextAudioLoader(torch.utils.data.Dataset):
@@ -72,7 +71,7 @@ class TextAudioLoader(torch.utils.data.Dataset):
         else:
             text_norm = text_to_sequence(text, self.text_cleaners)
         if self.add_blank:
-            text_norm = commons.intersperse(text_norm, 0)
+            text_norm = commons.intersperse(text_norm, PAD_ID)
         text_norm = torch.LongTensor(text_norm)
         return text_norm
 
@@ -98,58 +97,6 @@ class TextAudioLoader(torch.utils.data.Dataset):
             torch.save(spec, spec_filename)
 
         return spec
-
-    def get_pitch(self, wav):
-        # Compute fundamental frequency
-        pitch, t = pw.dio(
-            wav.astype(np.float64),
-            self.sample_rate,
-            frame_period=self.hop_length / self.sample_rate * 1000,
-        )
-        pitch = pw.stonemask(wav.astype(np.float64), pitch, t, self.sample_rate)
-
-        assert np.sum(pitch != 0) > 1, f"Too few ({np.sum(pitch != 0)}) pitch values detected. Audio may be blank."
-
-        # TODO add pitch phoneme averaging
-        # if self.pitch_phoneme_averaging:
-        #     # perform linear interpolation
-        #     nonzero_ids = np.where(pitch != 0)[0]
-        #     interp_fn = interp1d(
-        #         nonzero_ids,
-        #         pitch[nonzero_ids],
-        #         fill_value=(pitch[nonzero_ids[0]], pitch[nonzero_ids[-1]]),
-        #         bounds_error=False,
-        #     )
-        #     pitch = interp_fn(np.arange(0, len(pitch)))
-
-        #     # Phoneme-level average
-        #     pos = 0
-        #     for i, d in enumerate(duration):
-        #         if d > 0:
-        #             pitch[i] = np.mean(pitch[pos : pos + d])
-        #         else:
-        #             pitch[i] = 0
-        #         pos += d
-        #     pitch = pitch[: len(duration)]
-
-        return pitch
-
-    def get_energy(self, spec):
-        energy = torch.norm(spec, dim=0)
-
-        # TODO add energy phoneme averaging
-        # if self.energy_phoneme_averaging:
-        #     # Phoneme-level average
-        #     pos = 0
-        #     for i, d in enumerate(duration):
-        #         if d > 0:
-        #             energy[i] = np.mean(energy[pos : pos + d])
-        #         else:
-        #             energy[i] = 0
-        #         pos += d
-        #     energy = energy[: len(duration)]
-
-        return energy
 
     def __getitem__(self, index):
         return self.get_audio_text_pair(self.audiopaths_and_text[index])
@@ -271,7 +218,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         else:
             text_norm = text_to_sequence(text, self.text_cleaners)
         if self.add_blank:
-            text_norm = commons.intersperse(text_norm, 0)
+            text_norm = commons.intersperse(text_norm, PAD_ID)
         text_norm = torch.LongTensor(text_norm)
         return text_norm
 

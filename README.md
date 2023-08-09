@@ -206,7 +206,7 @@ We also provide the [pretrained models](https://drive.google.com/drive/folders/1
   - [ ] add pretrained models for multiple languages
 - [ ] future work
 
-  - [ ] update model to vits2
+  - [ ] update model to vits2. Please refer [VITS2](https://arxiv.org/abs/2307.16430)
   - [ ] update model to naturalspeech. Please refer [naturalspeech](https://arxiv.org/abs/2205.04421)
   - [ ] add support for streaming. Please refer [vits_chinese](https://github.com/PlayVoice/vits_chinese/blob/master/text/symbols.py)
   - [ ] update naturalspeech to multi-speaker
@@ -221,7 +221,7 @@ We also provide the [pretrained models](https://drive.google.com/drive/folders/1
 
 ## Acknowledgements
 
-- This is unofficial repo based on [NaturalSpeech](https://arxiv.org/abs/2205.04421)
+- This is unofficial repo based on [VITS2](https://arxiv.org/abs/2307.16430)
 - Text to phones converter for multiple languages is based on [phonemizer](https://github.com/bootphon/phonemizer)
 - We also thank GhatGPT for providing writing assistance.
 

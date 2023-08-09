@@ -18,7 +18,7 @@ train:
 data:
   training_files: datasets/ljs_nosdp/filelists/train.txt
   validation_files: datasets/ljs_nosdp/filelists/val.txt
-  text_cleaners:
+  text_cleaners: ["phonemize_text"]
   bits_per_sample: 16
   sample_rate: 22050
   n_fft: 1024

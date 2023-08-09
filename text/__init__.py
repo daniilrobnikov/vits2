@@ -2,6 +2,9 @@
 from text import cleaners
 from text.symbols import symbols
 
+# Special symbol ids
+PAD_ID = symbols.index("_")
+SPACE_ID = symbols.index(" ")
 
 # Mappings from symbol to numeric ID and vice versa:
 _symbol_to_id = {s: i for i, s in enumerate(symbols)}
@@ -16,13 +19,8 @@ def text_to_sequence(text, cleaner_names):
     Returns:
       List of integers corresponding to the symbols in the text
     """
-    sequence = []
-
-    clean_text = _clean_text(text, cleaner_names)
-    for symbol in clean_text:
-        symbol_id = _symbol_to_id[symbol]
-        sequence += [symbol_id]
-    return sequence
+    cleaned_text = _clean_text(text, cleaner_names)
+    return [_symbol_to_id[symbol] for symbol in cleaned_text]
 
 
 def cleaned_text_to_sequence(cleaned_text):
@@ -32,23 +30,17 @@ def cleaned_text_to_sequence(cleaned_text):
     Returns:
       List of integers corresponding to the symbols in the text
     """
-    sequence = [_symbol_to_id[symbol] for symbol in cleaned_text]
-    return sequence
+    return [_symbol_to_id[symbol] for symbol in cleaned_text]
 
 
 def sequence_to_text(sequence):
     """Converts a sequence of IDs back to a string"""
-    result = ""
-    for symbol_id in sequence:
-        s = _id_to_symbol[symbol_id]
-        result += s
-    return result
+    return "".join([_id_to_symbol[id] for id in sequence])
 
 
 def _clean_text(text, cleaner_names):
     for name in cleaner_names:
         cleaner = getattr(cleaners, name)
-        if not cleaner:
-            raise Exception("Unknown cleaner: %s" % name)
+        assert callable(cleaner), f"Unknown cleaner: {name}"
         text = cleaner(text)
     return text
