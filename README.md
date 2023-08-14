@@ -158,7 +158,7 @@ python train_ms.py -c datasets/vctk_base/config.yaml -m vctk_base
 python train_ms.py -c datasets/custom_base/config.yaml  -m custom_base
 ```
 
-## Inference Example
+## Inference Examples
 
 See [inference.ipynb](inference.ipynb) and [inference_batch.ipynb](inference_batch.ipynb)
 
@@ -175,7 +175,7 @@ See [inference.ipynb](inference.ipynb) and [inference_batch.ipynb](inference_bat
 - [ ] text preprocessing
   - [x] update vocabulary to support all symbols and features from IPA. See [phonemes.md](https://github.com/espeak-ng/espeak-ng/blob/ed9a7bcf5778a188cdec202ac4316461badb28e1/docs/phonemes.md#L5)
   - [x] remove cleaners from text preprocessing. Most cleaners are already implemented in [phonemizer](https://github.com/bootphon/phonemizer). See [cleaners.py](text/cleaners.py)
-  - [ ] handling unknown, out of vocabulary symbols. Please refer [vocab.py](text/vocab.py) and [vocab - TorchText](https://pytorch.org/text/stable/vocab.html)
+  - [ ] handling unknown, out of vocabulary symbols. Please refer [vocab - TorchText](https://pytorch.org/text/stable/vocab.html)
   - [ ] remove necessity for speakers indexation. See [vits/issues/58](https://github.com/jaywalnut310/vits/issues/58)
 - [ ] audio preprocessing
   - [x] replace scipy and librosa dependencies with torchaudio. See docs [torchaudio.load](https://pytorch.org/audio/stable/backend.html#id2) and [torchaudio.transforms](https://pytorch.org/audio/stable/transforms.html)
@@ -184,26 +184,20 @@ See [inference.ipynb](inference.ipynb) and [inference_batch.ipynb](inference_bat
   - [ ] test stereo audio (multi-channel) training
 - [x] filelists preprocessing
   - [x] filelists preprocessing. Please refer [prepare/filelists.ipynb](datasets/ljs_base/prepare/filelists.ipynb)
+- [ ] Monotonic Alignment Search (MAS)
+  - [x] replace Cython MAS with numba.jit. See [vits-finetuning](https://github.com/SayaSS/vits-finetuning)
+  - [ ] test CUDA implementation of MAS. See [monotonic_align.py](monotonic_align.py)
 - [ ] other
-  - [x] replace Cython Monotonic Alignment Search with numba.jit. See [vits-finetuning](https://github.com/SayaSS/vits-finetuning)
-  - [x] updated inference to support batch processing
-- [ ] pretrained models
-  - [ ] training the model for Bengali language. (For now: 55_000 iterations, ~26 epochs)
-  - [ ] add pretrained models for multiple languages
+  - [x] support for batch inference
+  - [ ] support for streaming inference. Please refer [vits_chinese](https://github.com/PlayVoice/vits_chinese/blob/master/text/symbols.py)
+  - [ ] use pytorch-lightning to tune hyperparameters optimizers, and schedulers
+  - [ ] compare IPA with ARPABET phonemizer in training
+  - [ ] test loss functions
 - [ ] future work
-
   - [x] use high-resolution mel-spectrograms in training
   - [ ] update model to vits2. Please refer [VITS2](https://arxiv.org/abs/2307.16430)
-  - [ ] update model to naturalspeech. Please refer [naturalspeech](https://arxiv.org/abs/2205.04421)
-  - [ ] add support for streaming. Please refer [vits_chinese](https://github.com/PlayVoice/vits_chinese/blob/master/text/symbols.py)
-  - [ ] update naturalspeech to multi-speaker
-  - [ ] replace speakers with multi-speaker embeddings
-  - [ ] replace speakers with multilingual training. Each speaker is a language with thhe same IPA symbols
-  - [ ] add support for in-context learning
-
-  - [ ] compare IPA with ARPABET phonemizer
-  - [ ] test different loss functions
-  - [ ] test different optimizers, hyperparameters, and schedulers
+  - [ ] update model to naturalspeech. Please refer [NaturalSpeech](https://arxiv.org/abs/2205.04421)
+  - [ ] update model to zero-shot learning. Please refer [YourTTS](https://arxiv.org/abs/2112.02418)
 
 ## Acknowledgements
 
