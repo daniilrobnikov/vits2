@@ -81,10 +81,7 @@ class TextAudioLoader(torch.utils.data.Dataset):
         return audio
 
     def get_spec(self, filename: str, wav):
-        if self.use_mel:
-            spec_filename = filename.replace(".wav", ".mel.pt")
-        else:
-            spec_filename = filename.replace(".wav", ".spec.pt")
+        spec_filename = filename.replace(".wav", ".spec.pt")
 
         if os.path.exists(spec_filename):
             spec = torch.load(spec_filename)
@@ -228,10 +225,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         return audio
 
     def get_spec(self, filename: str, wav):
-        if self.use_mel:
-            spec_filename = filename.replace(".wav", ".mel.pt")
-        else:
-            spec_filename = filename.replace(".wav", ".spec.pt")
+        spec_filename = filename.replace(".wav", ".spec.pt")
 
         if os.path.exists(spec_filename):
             spec = torch.load(spec_filename)

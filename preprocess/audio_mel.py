@@ -26,12 +26,12 @@ def parse_args():
 
 
 def process_item(ifile):
-    ofile = ifile.replace(".wav", ".mel.pt")
+    ofile = ifile.replace(".wav", ".spec.pt")
 
-    n_fft = 32768  # 1024 # TODO 32768 for num_mels = 513; 65536 for num_mels = 1025
+    n_fft = 16384  # 1024 # TODO 32768 for num_mels = 513; 65536 for num_mels = 1025
     hop_size = 256  # 256
     win_size = 1024  # 1024
-    num_mels = 513  # 80
+    num_mels = 384  # 80
     fmin = 0
     fmax = None
 
@@ -42,7 +42,7 @@ def process_item(ifile):
     try:
         wav, sr = torchaudio.load(ifile)
 
-        assert sr == 22050, f"sample rate: {sr}"
+        assert sr == 16000, f"sample rate: {sr}"
 
         spec = wav_to_mel(wav, n_fft, num_mels, sr, hop_size, win_size, fmin, fmax, center=False)
         spec = torch.squeeze(spec, 0) / value_ratio
@@ -73,7 +73,7 @@ def process_data(i_dir):
     p.join()
 
 
-def get_total_size(directory, extension):
+def get_size_by_ext(directory, extension):
     total_size = 0
     for dirpath, dirnames, filenames in os.walk(directory):
         for f in filenames:
@@ -81,15 +81,28 @@ def get_total_size(directory, extension):
                 fp = os.path.join(dirpath, f)
                 total_size += os.path.getsize(fp)
 
-    if total_size < 1024:
-        total_size = str(total_size) + "B"
-    elif total_size < (1024 * 1024):
-        total_size = str(total_size // 1024) + "KB"
-    elif total_size < (1024 * 1024 * 1024):
-        total_size = str(total_size // (1024 * 1024)) + "MB"
-    else:
-        total_size = str(total_size // (1024 * 1024 * 1024)) + "GB"
     return total_size
+
+
+def get_size(path="."):
+    total = 0
+    # Use os.scandir() as it's faster than os.listdir()
+    with os.scandir(path) as it:
+        for entry in it:
+            if entry.is_file():
+                total += entry.stat().st_size
+            elif entry.is_dir():
+                total += get_size(entry.path)
+    return total
+
+
+def human_readable_size(size):
+    """Converts size in bytes to a human-readable format."""
+    for unit in ["B", "KB", "MB", "GB", "TB"]:
+        if size < 1024:
+            return f"{size}{unit}"
+        size //= 1024
+    return f"{size}PB"  # PB is for petabyte, which will be used if the size is too large.
 
 
 if __name__ == "__main__":
@@ -102,7 +115,8 @@ if __name__ == "__main__":
     process_data(data_dir)
     logging.info(f"Processed data in {time() - start} seconds")
 
-    extension = ".mel.pt"
-    logging.info(f"{extension}: \t{get_total_size(data_dir, extension)}")
+    extension = ".spec.pt"
+    logging.info(f"{extension}: \t{human_readable_size(get_size_by_ext(data_dir, extension))}")
     extension = ".wav"
-    logging.info(f"{extension}: \t{get_total_size(data_dir, extension)}")
+    logging.info(f"{extension}: \t{human_readable_size(get_size_by_ext(data_dir, extension))}")
+    logging.info(f"Total: \t\t{human_readable_size(get_size(path=data_dir))}")
