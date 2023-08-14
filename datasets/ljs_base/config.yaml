@@ -30,7 +30,7 @@ data:
     - phonemize_text
   bits_per_sample: 16
   sample_rate: 22050
-  n_fft: 65536
+  n_fft: 32768
   hop_length: 256
   win_length: 1024
   n_mels: 513

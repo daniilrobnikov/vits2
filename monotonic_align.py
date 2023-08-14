@@ -4,7 +4,7 @@ from numba import cuda
 import numpy as np
 
 
-# ! ----------------------------- monotonic_align.py -----------------------------
+# ! ----------------------------- CUDA monotonic_align.py -----------------------------
 
 
 @cuda.jit("void(int32[:,:,:], float32[:,:,:], int32[:], int32[:])")
@@ -62,7 +62,7 @@ def maximum_path_cuda(neg_cent: torch.Tensor, mask: torch.Tensor):
     return path
 
 
-# ! ----------------------------- monotonic_align.py -----------------------------
+# ! ----------------------------- CPU monotonic_align.py -----------------------------
 
 
 def maximum_path(neg_cent, mask):

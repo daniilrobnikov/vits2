@@ -55,7 +55,7 @@ def spec_to_mel(spec: torch.Tensor, n_fft, n_mels, sample_rate, f_min, f_max) ->
     hparams = dtype_device + "_" + str(n_fft) + "_" + str(n_mels) + "_" + str(f_max)
     if hparams not in mel_scale_basis:
         mel_scale_basis[hparams] = T.MelScale(n_mels=n_mels, sample_rate=sample_rate, f_min=f_min, f_max=f_max, n_stft=n_fft // 2 + 1, norm="slaney", mel_scale="slaney").to(device=spec.device, dtype=spec.dtype)
-    # TODO print(hparams)
+        # TODO print(hparams)
 
     mel = torch.matmul(mel_scale_basis[hparams].fb.T, spec)
     # mel = spectral_normalize(mel)
