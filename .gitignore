@@ -1,8 +1,5 @@
-DUMMY1
-DUMMY2
-DUMMY3
+DUMMY*
 
-logs
 __pycache__
 .ipynb_checkpoints
 .*.swp
@@ -14,8 +11,7 @@ monotonic_align/monotonic_align
 .vscode
 .DS_Store
 
+logs
 test
-# test*.*
-
 configs
 datasets/madasr23_base/filelists

@@ -249,13 +249,11 @@ class ResBlock2(torch.nn.Module):
 class Log(nn.Module):
     def forward(self, x, x_mask, reverse=False, **kwargs):
         if not reverse:
-            # y = torch.log(torch.clamp_min(x, 1e-5)) * x_mask # TODO check if it is right for mel-spectrogram
-            y = x * x_mask
+            y = torch.log(torch.clamp_min(x, 1e-5)) * x_mask
             logdet = torch.sum(-y, [1, 2])
             return y, logdet
         else:
-            # x = torch.exp(x) * x_mask # TODO check if it is right for mel-spectrogram
-            x = x * x_mask
+            x = torch.exp(x) * x_mask
             return x
 
 
