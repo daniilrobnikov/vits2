@@ -127,16 +127,12 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
 
             if hps.data.use_mel:
                 mel = wav_to_mel(y.squeeze(1), hps.evaluate.n_fft, hps.evaluate.n_mels, hps.data.sample_rate, hps.evaluate.hop_length, hps.evaluate.win_length, hps.evaluate.f_min, hps.evaluate.f_max)
-                print("y shape", y.shape)
-                print("mel shape", mel.shape)
             else:
                 mel = spec_to_mel(spec, hps.evaluate.n_fft, hps.evaluate.n_mels, hps.data.sample_rate, hps.evaluate.f_min, hps.evaluate.f_max)
             y_mel = commons.slice_segments(mel, ids_slice, hps.train.segment_size // hps.evaluate.hop_length)
-            y = commons.slice_segments(y, ids_slice * hps.data.hop_length, hps.train.segment_size)  # slice
-
             y_hat_mel = wav_to_mel(y_hat.squeeze(1), hps.evaluate.n_fft, hps.evaluate.n_mels, hps.data.sample_rate, hps.evaluate.hop_length, hps.evaluate.win_length, hps.evaluate.f_min, hps.evaluate.f_max)
-            print("y_hat shape", y_hat.shape)
-            print("y_hat_mel shape", y_hat_mel.shape)
+
+            y = commons.slice_segments(y, ids_slice * hps.data.hop_length, hps.train.segment_size)  # slice
 
             # Discriminator
             y_d_hat_r, y_d_hat_g, _, _ = net_d(y, y_hat.detach())

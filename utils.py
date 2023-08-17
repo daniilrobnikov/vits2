@@ -12,7 +12,7 @@ import torchaudio
 MATPLOTLIB_FLAG = False
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-logging.getLogger("numba").setLevel(logging.INFO)
+logging.getLogger("numba").setLevel(logging.WARNING)
 logger = logging
 
 

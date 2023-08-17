@@ -58,7 +58,7 @@ def spec_to_mel(spec: torch.Tensor, n_fft, n_mels, sample_rate, f_min, f_max) ->
         # TODO print(hparams)
 
     mel = torch.matmul(mel_scale_basis[hparams].fb.T, spec)
-    # mel = spectral_normalize(mel)
+    mel = spectral_normalize(mel)
     return mel
 
 
@@ -87,5 +87,5 @@ def wav_to_mel(y: torch.Tensor, n_fft, num_mels, sampling_rate, hop_size, win_si
         # TODO print(hparams)
 
     mel = mel_spectrogram_basis[hparams](y)
-    # mel = spectral_normalize(mel)
+    mel = spectral_normalize(mel)
     return mel

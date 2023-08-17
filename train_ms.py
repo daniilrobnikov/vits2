@@ -134,8 +134,8 @@ def train_and_evaluate(rank, epoch, hps, nets: List[torch.nn.parallel.Distribute
             else:
                 mel = spec_to_mel(spec, hps.evaluate.n_fft, hps.evaluate.n_mels, hps.data.sample_rate, hps.evaluate.f_min, hps.evaluate.f_max)
             y_mel = commons.slice_segments(mel, ids_slice, hps.train.segment_size // hps.evaluate.hop_length)
-
             y_hat_mel = wav_to_mel(y_hat.squeeze(1), hps.evaluate.n_fft, hps.evaluate.n_mels, hps.data.sample_rate, hps.evaluate.hop_length, hps.evaluate.win_length, hps.evaluate.f_min, hps.evaluate.f_max)
+
             y = commons.slice_segments(y, ids_slice * hps.evaluate.hop_length, hps.train.segment_size)  # slice
 
             # Discriminator

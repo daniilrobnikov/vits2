@@ -37,6 +37,7 @@ def maximum_path_cuda_jit(paths, values, t_ys, t_xs):
     cuda.syncthreads()
 
 
+# TODO test for the optimal blockspergrid and threadsperblock values
 def maximum_path_cuda(neg_cent: torch.Tensor, mask: torch.Tensor):
     """
     Monotonic alignment search algorithm
@@ -51,8 +52,10 @@ def maximum_path_cuda(neg_cent: torch.Tensor, mask: torch.Tensor):
     t_t_max_device = cuda.as_cuda_array(mask.sum(1, dtype=torch.int32)[:, 0])
     t_s_max_device = cuda.as_cuda_array(mask.sum(2, dtype=torch.int32)[:, 0])
 
-    threadsperblock = 32
-    blockspergrid = (path_device.shape[0] + (threadsperblock - 1)) // threadsperblock
+    blockspergrid = neg_cent.shape[0]
+    threadsperblock = max(neg_cent.shape[1], neg_cent.shape[2])
+    # threadsperblock = 32
+    # blockspergrid = (path_device.shape[0] + (threadsperblock - 1)) // threadsperblock
 
     maximum_path_cuda_jit[blockspergrid, threadsperblock](path_device, neg_cent_device, t_t_max_device, t_s_max_device)
 

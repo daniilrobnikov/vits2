@@ -8,6 +8,8 @@ import yaml
 
 # TODO change model_dir implementation, add log_dir
 class HParams:
+    data_dir: str = None
+
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             if type(v) == dict:
