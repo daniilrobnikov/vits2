@@ -76,14 +76,10 @@ rm -rf wavs
 2. save high-resolution mel-spectrograms. See [audio_mel.py](preprocess/audio_mel.py)
 
 ```shell
-python preprocess/audio_mel.py --data_dir /path/to/LJSpeech-1.1
+python preprocess/audio_mel.py --data_dir /path/to/LJSpeech-1.1 -c datasets/ljs_base/config.yaml
 ```
 
-3. rename or create a link to the dataset folder
-
-```shell
-ln -s /path/to/LJSpeech-1.1/wavs DUMMY1
-```
+3. prepare filelists and create a link to the dataset folder. See [prepare/filelists.ipynb](datasets/ljs_base/prepare/filelists.ipynb)
 
 ### VCTK dataset
 
@@ -99,14 +95,10 @@ unzip VCTK-Corpus-0.92.zip
 3. save high-resolution mel-spectrograms. See [audio_mel.py](preprocess/audio_mel.py)
 
 ```shell
-python preprocess/audio_mel.py --data_dir /path/to/VCTK-Corpus-0.92
+python preprocess/audio_mel.py --data_dir /path/to/VCTK-Corpus-0.92 -c datasets/vctk_base/config.yaml
 ```
 
-4. rename or create a link to the dataset folder
-
-```shell
-ln -s /path/to/VCTK-Corpus/downsampled_wavs DUMMY2
-```
+4. prepare filelists and create a link to the dataset folder. See [prepare/filelists.ipynb](datasets/ljs_base/prepare/filelists.ipynb)
 
 ### Custom dataset
 
@@ -124,26 +116,19 @@ data:
   sample_rate: 22050 # sampling rate if you resampled your wav files
   ...
   n_speakers: 0 # 0 for single speaker, > 0 for multi-speaker
-  cleaned_text: true # if you want to use cleaned text in training
 ```
 
 4. save high-resolution mel-spectrograms. See [audio_mel.py](preprocess/audio_mel.py)
 
 ```shell
-python preprocess/audio_mel.py --data_dir /path/to/custom_dataset
+python preprocess/audio_mel.py --data_dir /path/to/custom_dataset -c datasets/custom_base/config.yaml
 ```
 
 5. install espeak-ng (optional)
 
-6. preprocess text. See [prepare/filelists.ipynb](datasets/ljs_base/prepare/filelists.ipynb)
+6. preprocess text and create a link to the dataset folder. See [prepare/filelists.ipynb](datasets/ljs_base/prepare/filelists.ipynb)
 
-**NOTE:** You may need to install `espeak-ng` if you want to use `phonemize_text` text cleaner. Please refer [espeak-ng](https://github.com/espeak-ng/espeak-ng)
-
-7. rename or create a link to the dataset folder
-
-```shell
-ln -s /path/to/custom_dataset DUMMY3
-```
+**NOTE:** You may need to install `espeak-ng` if you want to use `phonemize_text` cleaner. Please refer [espeak-ng](https://github.com/espeak-ng/espeak-ng)
 
 ## Training Examples
 
@@ -172,29 +157,19 @@ See [inference.ipynb](inference.ipynb) and [inference_batch.ipynb](inference_bat
 
 ## Todo
 
-- [ ] text preprocessing
-  - [x] update vocabulary to support all symbols and features from IPA. See [phonemes.md](https://github.com/espeak-ng/espeak-ng/blob/ed9a7bcf5778a188cdec202ac4316461badb28e1/docs/phonemes.md#L5)
-  - [x] remove cleaners from text preprocessing. Most cleaners are already implemented in [phonemizer](https://github.com/bootphon/phonemizer). See [cleaners.py](text/cleaners.py)
-  - [ ] handling unknown, out of vocabulary symbols. Please refer [vocab - TorchText](https://pytorch.org/text/stable/vocab.html)
-  - [ ] remove necessity for speakers indexation. See [vits/issues/58](https://github.com/jaywalnut310/vits/issues/58)
-- [ ] audio preprocessing
-  - [x] replace scipy and librosa dependencies with torchaudio. See docs [torchaudio.load](https://pytorch.org/audio/stable/backend.html#id2) and [torchaudio.transforms](https://pytorch.org/audio/stable/transforms.html)
-  - [ ] update batch audio resampling. Please refer [audio_resample.ipynb](preprocess/audio_resample.ipynb)
-  - [ ] update code snippets to find corrupted files in dataset. Please refer [audio_find_corrupted.ipynb](preprocess/audio_find_corrupted.ipynb)
-  - [ ] test stereo audio (multi-channel) training
-- [x] filelists preprocessing
-  - [x] filelists preprocessing. Please refer [prepare/filelists.ipynb](datasets/ljs_base/prepare/filelists.ipynb)
-- [ ] Monotonic Alignment Search (MAS)
-  - [x] replace Cython MAS with numba.jit. See [vits-finetuning](https://github.com/SayaSS/vits-finetuning)
-  - [ ] test CUDA implementation of MAS. See [monotonic_align.py](monotonic_align.py)
+- [ ] model (vits2)
+  - [x] update TextEncoder to support speaker conditioning
+  - [x] support for high-resolution mel-spectrograms in training. See [audio_mel.py](preprocess/audio_mel.py)
+  - [ ] add Gaussian noise to Monotonic Alignment Search (MAS) in training
+  - [ ] Normalizing Flows using Transformer Block
 - [ ] other
   - [x] support for batch inference
+  - [x] test numba.jit and numba.cuda.jit implementations of MAS. See [monotonic_align.py](monotonic_align.py)
   - [ ] support for streaming inference. Please refer [vits_chinese](https://github.com/PlayVoice/vits_chinese/blob/master/text/symbols.py)
   - [ ] use pytorch-lightning to tune hyperparameters optimizers, and schedulers
   - [ ] compare IPA with ARPABET phonemizer in training
   - [ ] test loss functions
 - [ ] future work
-  - [x] use high-resolution mel-spectrograms in training
   - [ ] update model to vits2. Please refer [VITS2](https://arxiv.org/abs/2307.16430)
   - [ ] update model to naturalspeech. Please refer [NaturalSpeech](https://arxiv.org/abs/2205.04421)
   - [ ] update model to zero-shot learning. Please refer [YourTTS](https://arxiv.org/abs/2112.02418)
