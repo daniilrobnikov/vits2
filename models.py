@@ -3,14 +3,13 @@ import math
 import torch
 from torch import nn
 from torch.nn import functional as F
+from torch.nn import Conv1d, ConvTranspose1d, AvgPool1d, Conv2d
+from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
 
 import commons
 import modules
-from attentions import RelativePositionTransformer
-import monotonic_align
-
-from torch.nn import Conv1d, ConvTranspose1d, AvgPool1d, Conv2d
-from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
+from tts_utils.transformer import RelativePositionTransformer
+from tts_utils.monotonic_align import search_path, generate_path
 from commons import init_weights, get_padding
 
 
@@ -427,6 +426,8 @@ class SynthesizerTrn(nn.Module):
         gin_channels=0,
         speaker_cond_layer=0,
         use_sdp=True,
+        mas_noise_scale=0.01,
+        mas_noise_scale_decay=2e-6,
         **kwargs
     ):
         super().__init__()
@@ -434,6 +435,8 @@ class SynthesizerTrn(nn.Module):
         self.segment_size = segment_size
         self.n_speakers = n_speakers
         self.use_sdp = use_sdp
+        self.mas_noise_scale = mas_noise_scale
+        self.mas_noise_scale_decay = mas_noise_scale_decay
 
         self.enc_p = TextEncoder(n_vocab, inter_channels, hidden_channels, filter_channels, n_heads, n_layers, kernel_size, p_dropout, gin_channels=gin_channels, speaker_cond_layer=speaker_cond_layer)
         self.dec = Generator(inter_channels, resblock, resblock_kernel_sizes, resblock_dilation_sizes, upsample_rates, upsample_initial_channel, upsample_kernel_sizes, gin_channels=gin_channels)
@@ -458,18 +461,8 @@ class SynthesizerTrn(nn.Module):
         z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=g)
         z_p = self.flow(z, y_mask, g=g)
 
-        with torch.no_grad():
-            # negative cross-entropy
-            s_p_sq_r = torch.exp(-2 * logs_p)  # [b, d, t]
-            neg_c_ent1 = torch.sum(-0.5 * math.log(2 * math.pi) - logs_p, [1], keepdim=True)  # [b, 1, t_s]
-            neg_c_ent2 = torch.matmul(-0.5 * (z_p**2).transpose(1, 2), s_p_sq_r)  # [b, t_t, d] x [b, d, t_s] = [b, t_t, t_s]
-            neg_c_ent3 = torch.matmul(z_p.transpose(1, 2), (m_p * s_p_sq_r))  # [b, t_t, d] x [b, d, t_s] = [b, t_t, t_s]
-            neg_c_ent4 = torch.sum(-0.5 * (m_p**2) * s_p_sq_r, [1], keepdim=True)  # [b, 1, t_s]
-            neg_c_ent = neg_c_ent1 + neg_c_ent2 + neg_c_ent3 + neg_c_ent4  # [b, t_t, t_s]
-
-            attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)  # [b, 1, t_s] * [b, t_t, 1] = [b, t_t, t_s]
-            # TODO Ready for testing
-            attn = monotonic_align.maximum_path_cuda(neg_c_ent, attn_mask.squeeze(1)).unsqueeze(1).detach()  # [b, 1, t_t, t_s]
+        attn = search_path(z_p, m_p, logs_p, x_mask, y_mask, self.mas_noise_scale)
+        self.mas_noise_scale = max(self.mas_noise_scale - self.mas_noise_scale_decay, 0.0)
 
         w = attn.sum(2)  # [b, 1, t_s]
         if self.use_sdp:
@@ -489,11 +482,12 @@ class SynthesizerTrn(nn.Module):
         return o, l_length, attn, ids_slice, x_mask, y_mask, (z, z_p, m_p, logs_p, m_q, logs_q)
 
     def infer(self, x, x_lengths, sid=None, noise_scale=1, length_scale=1, noise_scale_w=1.0, max_len=None):
-        x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths)
         if self.n_speakers > 0:
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
         else:
             g = None
+
+        x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths, g=g)
 
         if self.use_sdp:
             logw = self.dp(x, x_mask, g=g, reverse=True, noise_scale=noise_scale_w)
@@ -504,7 +498,7 @@ class SynthesizerTrn(nn.Module):
         y_lengths = torch.clamp_min(torch.sum(w_ceil, [1, 2]), 1).long()
         y_mask = torch.unsqueeze(commons.sequence_mask(y_lengths, None), 1).to(x_mask.dtype)
         attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
-        attn = commons.generate_path(w_ceil, attn_mask)
+        attn = generate_path(w_ceil, attn_mask)
 
         m_p = torch.matmul(attn.squeeze(1), m_p.transpose(1, 2)).transpose(1, 2)  # [b, t', t], [b, t, d] -> [b, d, t']
         logs_p = torch.matmul(attn.squeeze(1), logs_p.transpose(1, 2)).transpose(1, 2)  # [b, t', t], [b, t, d] -> [b, d, t']

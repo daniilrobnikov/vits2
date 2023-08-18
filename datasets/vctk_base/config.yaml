@@ -59,3 +59,5 @@ model:
   n_layers_q: 3
   use_spectral_norm: false
   gin_channels: 256
+  mas_noise_scale: 0.01 # 0.0 to disable Gaussian noise in MAS
+  mas_noise_scale_decay: 2.0e-06
