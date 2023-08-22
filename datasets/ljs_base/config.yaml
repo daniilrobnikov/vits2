@@ -57,6 +57,7 @@ model:
   upsample_initial_channel: 512
   upsample_kernel_sizes: [16, 16, 4, 4]
   n_layers_q: 3
-  use_spectral_norm: false
   mas_noise_scale: 0.01 # 0.0 to disable Gaussian noise in MAS
   mas_noise_scale_decay: 2.0e-06
+  use_spectral_norm: false
+  use_transformer_flow: true

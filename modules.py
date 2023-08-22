@@ -11,35 +11,17 @@ from torch.nn.utils import weight_norm, remove_weight_norm
 import commons
 from commons import init_weights, get_padding
 from transforms import piecewise_rational_quadratic_transform
+from tts_utils.transformer import RelativePositionTransformer
+from model.normalization import LayerNorm
 
 
 LRELU_SLOPE = 0.1
 
 
-class LayerNorm(nn.Module):
-    def __init__(self, channels, eps=1e-5):
-        super().__init__()
-        self.channels = channels
-        self.eps = eps
-
-        self.gamma = nn.Parameter(torch.ones(channels))
-        self.beta = nn.Parameter(torch.zeros(channels))
-
-    def forward(self, x):
-        x = x.transpose(1, -1)
-        x = F.layer_norm(x, (self.channels,), self.gamma, self.beta, self.eps)
-        return x.transpose(1, -1)
-
-
 class ConvReluNorm(nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, kernel_size, n_layers, p_dropout):
         super().__init__()
-        self.in_channels = in_channels
-        self.hidden_channels = hidden_channels
-        self.out_channels = out_channels
-        self.kernel_size = kernel_size
         self.n_layers = n_layers
-        self.p_dropout = p_dropout
         assert n_layers > 1, "Number of layers should be larger than 0."
 
         self.conv_layers = nn.ModuleList()
@@ -71,10 +53,7 @@ class DDSConv(nn.Module):
 
     def __init__(self, channels, kernel_size, n_layers, p_dropout=0.0):
         super().__init__()
-        self.channels = channels
-        self.kernel_size = kernel_size
         self.n_layers = n_layers
-        self.p_dropout = p_dropout
 
         self.drop = nn.Dropout(p_dropout)
         self.convs_sep = nn.ModuleList()
@@ -110,10 +89,8 @@ class WN(torch.nn.Module):
         assert kernel_size % 2 == 1
         self.hidden_channels = hidden_channels
         self.kernel_size = (kernel_size,)
-        self.dilation_rate = dilation_rate
         self.n_layers = n_layers
         self.gin_channels = gin_channels
-        self.p_dropout = p_dropout
 
         self.in_layers = torch.nn.ModuleList()
         self.res_skip_layers = torch.nn.ModuleList()
@@ -270,7 +247,6 @@ class Flip(nn.Module):
 class ElementwiseAffine(nn.Module):
     def __init__(self, channels):
         super().__init__()
-        self.channels = channels
         self.m = nn.Parameter(torch.zeros(channels, 1))
         self.logs = nn.Parameter(torch.zeros(channels, 1))
 
@@ -285,17 +261,32 @@ class ElementwiseAffine(nn.Module):
             return x
 
 
+# TODO rewrite for 256x256 attention score map
+# TODO Test another architecture for Transformer block
+# TODO (RelativePositionTransformer -> Conv1d -> WN -> Conv1d) -> Flip
+# TODO RelativePositionTransformer -> Flip -> (Conv1d -> WN -> Conv1d) -> Flip
 class ResidualCouplingLayer(nn.Module):
-    def __init__(self, channels, hidden_channels, kernel_size, dilation_rate, n_layers, p_dropout=0, gin_channels=0, mean_only=False):
+    def __init__(self, channels, hidden_channels, kernel_size, dilation_rate, n_layers, p_dropout=0, gin_channels=0, mean_only=False, use_transformer_flow=True):
         assert channels % 2 == 0, "channels should be divisible by 2"
         super().__init__()
-        self.channels = channels
-        self.hidden_channels = hidden_channels
-        self.kernel_size = kernel_size
-        self.dilation_rate = dilation_rate
-        self.n_layers = n_layers
         self.half_channels = channels // 2
         self.mean_only = mean_only
+
+        self.pre_transformer = (
+            RelativePositionTransformer(
+                self.half_channels,
+                self.half_channels,
+                self.half_channels,
+                self.half_channels,
+                n_heads=2,
+                n_layers=1,
+                kernel_size=3,
+                dropout=0.1,
+                window_size=None,
+            )
+            if use_transformer_flow
+            else None
+        )
 
         self.pre = nn.Conv1d(self.half_channels, hidden_channels, 1)
         self.enc = WN(hidden_channels, kernel_size, dilation_rate, n_layers, p_dropout=p_dropout, gin_channels=gin_channels)
@@ -305,7 +296,11 @@ class ResidualCouplingLayer(nn.Module):
 
     def forward(self, x, x_mask, g=None, reverse=False):
         x0, x1 = torch.split(x, [self.half_channels] * 2, 1)
-        h = self.pre(x0) * x_mask
+        x0_ = x0
+        if self.pre_transformer is not None:
+            x0_ = self.pre_transformer(x0 * x_mask, x_mask)
+            x0_ = x0_ + x0  # residual connection
+        h = self.pre(x0_) * x_mask
         h = self.enc(h, x_mask, g=g)
         stats = self.post(h) * x_mask
         if not self.mean_only:
@@ -328,10 +323,7 @@ class ResidualCouplingLayer(nn.Module):
 class ConvFlow(nn.Module):
     def __init__(self, in_channels, filter_channels, kernel_size, n_layers, num_bins=10, tail_bound=5.0):
         super().__init__()
-        self.in_channels = in_channels
         self.filter_channels = filter_channels
-        self.kernel_size = kernel_size
-        self.n_layers = n_layers
         self.num_bins = num_bins
         self.tail_bound = tail_bound
         self.half_channels = in_channels // 2

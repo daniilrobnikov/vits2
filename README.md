@@ -160,8 +160,12 @@ See [inference.ipynb](inference.ipynb) and [inference_batch.ipynb](inference_bat
 - [ ] model (vits2)
   - [x] update TextEncoder to support speaker conditioning
   - [x] support for high-resolution mel-spectrograms in training. See [audio_mel.py](preprocess/audio_mel.py)
-  - [ ] add Gaussian noise to Monotonic Alignment Search (MAS) in training
-  - [ ] Normalizing Flows using Transformer Block
+  - [x] Monotonic Alignment Search with Gaussian noise
+  - [x] Normalizing Flows using Transformer Block
+  - [ ] Stochastic Duration Predictor with Time Step-wise Conditional Discriminator
+- [ ] model (YourTTS)
+  - [ ] Speaker Encoder
+  - [ ] support for language conditioning
 - [ ] other
   - [x] support for batch inference
   - [x] test numba.jit and numba.cuda.jit implementations of MAS. See [monotonic_align.py](monotonic_align.py)
@@ -171,8 +175,8 @@ See [inference.ipynb](inference.ipynb) and [inference_batch.ipynb](inference_bat
   - [ ] test loss functions
 - [ ] future work
   - [ ] update model to vits2. Please refer [VITS2](https://arxiv.org/abs/2307.16430)
-  - [ ] update model to naturalspeech. Please refer [NaturalSpeech](https://arxiv.org/abs/2205.04421)
   - [ ] update model to zero-shot learning. Please refer [YourTTS](https://arxiv.org/abs/2112.02418)
+  - [ ] update model to naturalspeech. Please refer [NaturalSpeech](https://arxiv.org/abs/2205.04421)
 
 ## Acknowledgements
 
@@ -184,6 +188,7 @@ See [inference.ipynb](inference.ipynb) and [inference_batch.ipynb](inference_bat
 
 - [VITS2: Improving Quality and Efficiency of Single-Stage Text-to-Speech with Adversarial Learning and Architecture Design](https://arxiv.org/abs/2307.16430)
 - [Conditional Variational Autoencoder with Adversarial Learning for End-to-End Text-to-Speech](https://arxiv.org/abs/2106.06103)
+- [YourTTS: Towards Zero-Shot Multi-Speaker TTS and Zero-Shot Voice Conversion for everyone](https://arxiv.org/abs/2112.02418)
 - [NaturalSpeech: End-to-End Text to Speech Synthesis with Human-Level Quality](https://arxiv.org/abs/2205.04421)
 - [A TensorFlow implementation of Google's Tacotron speech synthesis with pre-trained model (unofficial)](https://github.com/keithito/tacotron)
 
