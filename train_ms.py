@@ -117,7 +117,7 @@ def train_and_evaluate(rank, epoch, hps, nets: List[torch.nn.parallel.Distribute
     net_g.train()
     net_d.train()
     if rank == 0:
-        loader = tqdm.tqdm(train_loader, desc="Loading train data")
+        loader = tqdm.tqdm(train_loader, desc=f"Epoch {epoch}")
     else:
         loader = train_loader
     for batch_idx, (x, x_lengths, spec, spec_lengths, y, y_lengths, speakers) in enumerate(loader):
@@ -171,8 +171,8 @@ def train_and_evaluate(rank, epoch, hps, nets: List[torch.nn.parallel.Distribute
             if global_step % hps.train.log_interval == 0:
                 lr = optim_g.param_groups[0]["lr"]
                 losses = [loss_disc, loss_gen, loss_fm, loss_mel, loss_dur, loss_kl]
-                logger.info("Train Epoch: {} [{:.0f}%]".format(epoch, 100.0 * batch_idx / len(train_loader)))
-                logger.info([x.item() for x in losses] + [global_step, lr])
+                losses_str = " ".join(f"{loss.item():.4f}" for loss in losses)
+                loader.set_postfix_str(f"{losses_str}, {global_step}, {lr:.9f}")
 
                 scalar_dict = {"loss/g/total": loss_gen_all, "loss/d/total": loss_disc_all, "learning_rate": lr, "grad_norm_d": grad_norm_d, "grad_norm_g": grad_norm_g}
                 scalar_dict.update({"loss/g/fm": loss_fm, "loss/g/mel": loss_mel, "loss/g/dur": loss_dur, "loss/g/kl": loss_kl})
@@ -193,9 +193,6 @@ def train_and_evaluate(rank, epoch, hps, nets: List[torch.nn.parallel.Distribute
                 utils.save_checkpoint(net_g, optim_g, hps.train.learning_rate, epoch, os.path.join(hps.model_dir, "G_{}.pth".format(global_step)))
                 utils.save_checkpoint(net_d, optim_d, hps.train.learning_rate, epoch, os.path.join(hps.model_dir, "D_{}.pth".format(global_step)))
         global_step += 1
-
-    if rank == 0:
-        logger.info(f"====> Epoch: {epoch}")
 
 
 def evaluate(hps, generator, eval_loader, writer_eval):

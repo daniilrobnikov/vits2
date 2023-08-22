@@ -1,13 +1,10 @@
-import copy
 import math
-import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
 
 import commons
-import modules
-from modules import LayerNorm
+from model.normalization import LayerNorm
 
 
 # TODO add conditioning on language
@@ -38,7 +35,7 @@ class RelativePositionTransformer(nn.Module):
         self.ffn_layers = nn.ModuleList()
         self.norm_layers_2 = nn.ModuleList()
         for i in range(self.n_layers):
-            self.attn_layers.append(MultiHeadAttention(hidden_channels, hidden_channels, n_heads, p_dropout=dropout, window_size=window_size))
+            self.attn_layers.append(MultiHeadAttention(hidden_channels if i != 0 else in_channels, hidden_channels, n_heads, p_dropout=dropout, window_size=window_size))
             self.norm_layers_1.append(LayerNorm(hidden_channels))
             self.ffn_layers.append(FFN(hidden_channels, hidden_channels, hidden_channels_ffn, kernel_size, p_dropout=dropout))
             self.norm_layers_2.append(LayerNorm(hidden_channels))
@@ -49,6 +46,8 @@ class RelativePositionTransformer(nn.Module):
         attn_mask = x_mask.unsqueeze(2) * x_mask.unsqueeze(-1)
         x = x * x_mask
         for i in range(self.n_layers):
+            # TODO consider using other conditioning
+            # TODO https://github.com/svc-develop-team/so-vits-svc/blob/4.1-Stable/modules/attentions.py#L12
             if i == self.speaker_cond_layer - 1 and g is not None:
                 # ! g = torch.detach(g)
                 x = x + self.cond(g)
@@ -219,20 +218,10 @@ class MultiHeadAttention(nn.Module):
 
 
 class FFN(nn.Module):
-    def __init__(self, in_channels, out_channels, filter_channels, kernel_size, p_dropout=0.0, activation=None, causal=False):
+    def __init__(self, in_channels, out_channels, filter_channels, kernel_size, p_dropout=0.0, causal=False):
         super().__init__()
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.filter_channels = filter_channels
         self.kernel_size = kernel_size
-        self.p_dropout = p_dropout
-        self.activation = activation
-        self.causal = causal
-
-        if causal:
-            self.padding = self._causal_padding
-        else:
-            self.padding = self._same_padding
+        self.padding = self._causal_padding if causal else self._same_padding
 
         self.conv_1 = nn.Conv1d(in_channels, filter_channels, kernel_size)
         self.conv_2 = nn.Conv1d(filter_channels, out_channels, kernel_size)
@@ -240,10 +229,7 @@ class FFN(nn.Module):
 
     def forward(self, x, x_mask):
         x = self.conv_1(self.padding(x * x_mask))
-        if self.activation == "gelu":
-            x = x * torch.sigmoid(1.702 * x)
-        else:
-            x = torch.relu(x)
+        x = torch.relu(x)
         x = self.drop(x)
         x = self.conv_2(self.padding(x * x_mask))
         return x * x_mask
