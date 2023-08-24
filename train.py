@@ -1,8 +1,4 @@
 import os
-import json
-import argparse
-import itertools
-import math
 import tqdm
 import torch
 from torch import nn, optim
@@ -14,18 +10,15 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.cuda.amp import autocast, GradScaler
 
-import commons
-import utils
-from tts_utils.hparams import get_hparams
+import utils.utils as utils
+from utils.hparams import get_hparams
+from model.models import SynthesizerTrn
+from model.discriminator import MultiPeriodDiscriminator
 from data_utils import TextAudioLoader, TextAudioCollate, DistributedBucketSampler
-from models import (
-    SynthesizerTrn,
-    MultiPeriodDiscriminator,
-)
 from losses import generator_loss, discriminator_loss, feature_loss, kl_loss
-from tts_utils.mel_processing import wav_to_mel, spec_to_mel
+from utils.commons import slice_segments, clip_grad_value_
+from utils.mel_processing import wav_to_mel, spec_to_mel
 from text.symbols import symbols
-
 
 torch.backends.cudnn.benchmark = True
 global_step = 0
@@ -129,10 +122,10 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
                 mel = wav_to_mel(y.squeeze(1), hps.evaluate.n_fft, hps.evaluate.n_mels, hps.data.sample_rate, hps.evaluate.hop_length, hps.evaluate.win_length, hps.evaluate.f_min, hps.evaluate.f_max)
             else:
                 mel = spec_to_mel(spec, hps.evaluate.n_fft, hps.evaluate.n_mels, hps.data.sample_rate, hps.evaluate.f_min, hps.evaluate.f_max)
-            y_mel = commons.slice_segments(mel, ids_slice, hps.train.segment_size // hps.evaluate.hop_length)
+            y_mel = slice_segments(mel, ids_slice, hps.train.segment_size // hps.evaluate.hop_length)
             y_hat_mel = wav_to_mel(y_hat.squeeze(1), hps.evaluate.n_fft, hps.evaluate.n_mels, hps.data.sample_rate, hps.evaluate.hop_length, hps.evaluate.win_length, hps.evaluate.f_min, hps.evaluate.f_max)
 
-            y = commons.slice_segments(y, ids_slice * hps.data.hop_length, hps.train.segment_size)  # slice
+            y = slice_segments(y, ids_slice * hps.data.hop_length, hps.train.segment_size)  # slice
 
             # Discriminator
             y_d_hat_r, y_d_hat_g, _, _ = net_d(y, y_hat.detach())
@@ -142,7 +135,7 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
         optim_d.zero_grad()
         scaler.scale(loss_disc_all).backward()
         scaler.unscale_(optim_d)
-        grad_norm_d = commons.clip_grad_value_(net_d.parameters(), None)
+        grad_norm_d = clip_grad_value_(net_d.parameters(), None)
         scaler.step(optim_d)
 
         with autocast(enabled=hps.train.fp16_run):
@@ -160,7 +153,7 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
         optim_g.zero_grad()
         scaler.scale(loss_gen_all).backward()
         scaler.unscale_(optim_g)
-        grad_norm_g = commons.clip_grad_value_(net_g.parameters(), None)
+        grad_norm_g = clip_grad_value_(net_g.parameters(), None)
         scaler.step(optim_g)
         scaler.update()
 

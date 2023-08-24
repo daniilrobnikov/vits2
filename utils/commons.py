@@ -21,6 +21,7 @@ def intersperse(lst, item):
     return result
 
 
+# TODO remove this
 def kl_divergence(m_p, logs_p, m_q, logs_q):
     """KL(P||Q)"""
     kl = (logs_q - logs_p) - 0.5
@@ -28,12 +29,14 @@ def kl_divergence(m_p, logs_p, m_q, logs_q):
     return kl
 
 
+# TODO remove this
 def rand_gumbel(shape):
     """Sample from the Gumbel distribution, protect from overflows."""
     uniform_samples = torch.rand(shape) * 0.99998 + 0.00001
     return -torch.log(-torch.log(uniform_samples))
 
 
+# TODO remove this
 def rand_gumbel_like(x):
     g = rand_gumbel(x.size()).to(dtype=x.dtype, device=x.device)
     return g
@@ -58,6 +61,7 @@ def rand_slice_segments(x, x_lengths=None, segment_size=4):
     return ret, ids_str
 
 
+# TODO remove this
 def get_timing_signal_1d(length, channels, min_timescale=1.0, max_timescale=1.0e4):
     position = torch.arange(length, dtype=torch.float)
     num_timescales = channels // 2
@@ -70,18 +74,21 @@ def get_timing_signal_1d(length, channels, min_timescale=1.0, max_timescale=1.0e
     return signal
 
 
+# TODO remove this
 def add_timing_signal_1d(x, min_timescale=1.0, max_timescale=1.0e4):
     b, channels, length = x.size()
     signal = get_timing_signal_1d(length, channels, min_timescale, max_timescale)
     return x + signal.to(dtype=x.dtype, device=x.device)
 
 
+# TODO remove this
 def cat_timing_signal_1d(x, min_timescale=1.0, max_timescale=1.0e4, axis=1):
     b, channels, length = x.size()
     signal = get_timing_signal_1d(length, channels, min_timescale, max_timescale)
     return torch.cat([x, signal.to(dtype=x.dtype, device=x.device)], axis)
 
 
+# TODO remove this
 def subsequent_mask(length):
     mask = torch.tril(torch.ones(length, length)).unsqueeze(0).unsqueeze(0)
     return mask
@@ -103,6 +110,7 @@ def convert_pad_shape(pad_shape):
     return pad_shape
 
 
+# TODO remove this
 def shift_1d(x):
     x = F.pad(x, convert_pad_shape([[0, 0], [0, 0], [1, 0]]))[:, :, :-1]
     return x

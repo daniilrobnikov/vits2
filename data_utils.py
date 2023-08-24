@@ -1,13 +1,11 @@
-import time
 import os
 import random
-import numpy as np
 import torch
 import torch.utils.data
 
-import commons
-from tts_utils.mel_processing import wav_to_spec, wav_to_mel
-from utils import load_wav_to_torch, load_filepaths_and_text
+from utils.commons import intersperse
+from utils.mel_processing import wav_to_spec, wav_to_mel
+from utils.utils import load_wav_to_torch, load_filepaths_and_text
 from text import text_to_sequence, cleaned_text_to_sequence, PAD_ID
 
 
@@ -71,7 +69,7 @@ class TextAudioLoader(torch.utils.data.Dataset):
         else:
             text_norm = text_to_sequence(text, self.text_cleaners)
         if self.add_blank:
-            text_norm = commons.intersperse(text_norm, PAD_ID)
+            text_norm = intersperse(text_norm, PAD_ID)
         text_norm = torch.LongTensor(text_norm)
         return text_norm
 
@@ -215,7 +213,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         else:
             text_norm = text_to_sequence(text, self.text_cleaners)
         if self.add_blank:
-            text_norm = commons.intersperse(text_norm, PAD_ID)
+            text_norm = intersperse(text_norm, PAD_ID)
         text_norm = torch.LongTensor(text_norm)
         return text_norm
 

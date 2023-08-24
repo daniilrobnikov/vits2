@@ -2,9 +2,9 @@ import math
 import torch
 import torch.nn as nn
 
-from commons import sequence_mask
-from modules import WN
-from tts_utils.transformer import RelativePositionTransformer
+from model.modules import WN
+from model.transformer import RelativePositionTransformer
+from utils.commons import sequence_mask
 
 
 # * Ready and Tested

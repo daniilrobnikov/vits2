@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-import commons
+import utils.commons as commons
 from model.normalization import LayerNorm
 
 

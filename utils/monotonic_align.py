@@ -5,7 +5,7 @@ import numba
 import numpy as np
 from numba import cuda
 
-from commons import sequence_mask, convert_pad_shape
+from utils.commons import sequence_mask, convert_pad_shape
 
 
 # * Ready and Tested

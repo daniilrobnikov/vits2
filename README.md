@@ -165,13 +165,14 @@ See [inference.ipynb](inference.ipynb) and [inference_batch.ipynb](inference_bat
   - [ ] Stochastic Duration Predictor with Time Step-wise Conditional Discriminator
 - [ ] model (YourTTS)
   - [ ] Speaker Encoder
-  - [ ] support for language conditioning
+  - [ ] Language Conditioning
 - [ ] other
   - [x] support for batch inference
   - [x] test numba.jit and numba.cuda.jit implementations of MAS. See [monotonic_align.py](monotonic_align.py)
   - [ ] support for streaming inference. Please refer [vits_chinese](https://github.com/PlayVoice/vits_chinese/blob/master/text/symbols.py)
-  - [ ] use pytorch-lightning to tune hyperparameters optimizers, and schedulers
+  - [ ] Conditional Layer Normalization
   - [ ] compare IPA with ARPABET phonemizer in training
+  - [ ] use optuna for hyperparameter tuning
   - [ ] test loss functions
 - [ ] future work
   - [ ] update model to vits2. Please refer [VITS2](https://arxiv.org/abs/2307.16430)

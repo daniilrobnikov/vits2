@@ -9,8 +9,8 @@ from multiprocessing.pool import Pool
 import torch
 import torchaudio
 
-from tts_utils.hparams import get_hparams_from_file, HParams
-from tts_utils.mel_processing import wav_to_mel
+from utils.hparams import get_hparams_from_file, HParams
+from utils.mel_processing import wav_to_mel
 
 os.environ["OMP_NUM_THREADS"] = "1"
 log_format = "%(asctime)s %(message)s"

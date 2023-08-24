@@ -1,8 +1,5 @@
 import torch
-import torch.nn.functional as F
 from typing import List
-
-import commons
 
 
 def feature_loss(fmap_r: List[torch.Tensor], fmap_g: List[torch.Tensor]):
