@@ -6,7 +6,7 @@ from model.normalizing_flows import ResidualCouplingBlock
 from model.duration_predictors import DurationPredictor, StochasticDurationPredictor
 from model.decoder import Generator
 from utils.monotonic_align import search_path, generate_path
-from utils.commons import sequence_mask, rand_slice_segments
+from utils.model import sequence_mask, rand_slice_segments
 
 
 class SynthesizerTrn(nn.Module):
@@ -24,21 +24,22 @@ class SynthesizerTrn(nn.Module):
         filter_channels,
         n_heads,
         n_layers,
+        n_layers_q,
         kernel_size,
         p_dropout,
+        speaker_cond_layer,
         resblock,
         resblock_kernel_sizes,
         resblock_dilation_sizes,
         upsample_rates,
         upsample_initial_channel,
         upsample_kernel_sizes,
-        n_speakers=0,
-        gin_channels=0,
-        speaker_cond_layer=0,
+        mas_noise_scale,
+        mas_noise_scale_decay,
         use_sdp=True,
         use_transformer_flow=True,
-        mas_noise_scale=0.01,
-        mas_noise_scale_decay=2e-6,
+        n_speakers=0,
+        gin_channels=0,
         **kwargs
     ):
         super().__init__()
@@ -49,8 +50,8 @@ class SynthesizerTrn(nn.Module):
         self.mas_noise_scale_decay = mas_noise_scale_decay
 
         self.enc_p = TextEncoder(n_vocab, inter_channels, hidden_channels, filter_channels, n_heads, n_layers, kernel_size, p_dropout, gin_channels=gin_channels, speaker_cond_layer=speaker_cond_layer)
+        self.enc_q = PosteriorEncoder(spec_channels, inter_channels, hidden_channels, 5, 1, n_layers_q, gin_channels=gin_channels)
         self.dec = Generator(inter_channels, resblock, resblock_kernel_sizes, resblock_dilation_sizes, upsample_rates, upsample_initial_channel, upsample_kernel_sizes, gin_channels=gin_channels)
-        self.enc_q = PosteriorEncoder(spec_channels, inter_channels, hidden_channels, 5, 1, 16, gin_channels=gin_channels)
         self.flow = ResidualCouplingBlock(inter_channels, hidden_channels, 5, 1, 4, gin_channels=gin_channels, use_transformer_flow=use_transformer_flow)
 
         if use_sdp:
@@ -84,8 +85,8 @@ class SynthesizerTrn(nn.Module):
             l_length = torch.sum((logw - logw_) ** 2, [1, 2]) / torch.sum(x_mask)  # for averaging
 
         # expand prior
-        m_p = torch.matmul(attn.squeeze(1), m_p.transpose(1, 2)).transpose(1, 2)
-        logs_p = torch.matmul(attn.squeeze(1), logs_p.transpose(1, 2)).transpose(1, 2)
+        m_p = torch.matmul(attn.squeeze(1), m_p.mT).mT
+        logs_p = torch.matmul(attn.squeeze(1), logs_p.mT).mT
 
         z_slice, ids_slice = rand_slice_segments(z, y_lengths, self.segment_size)
         o = self.dec(z_slice, g=g)
@@ -110,8 +111,8 @@ class SynthesizerTrn(nn.Module):
         attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
         attn = generate_path(w_ceil, attn_mask)
 
-        m_p = torch.matmul(attn.squeeze(1), m_p.transpose(1, 2)).transpose(1, 2)  # [b, t', t], [b, t, d] -> [b, d, t']
-        logs_p = torch.matmul(attn.squeeze(1), logs_p.transpose(1, 2)).transpose(1, 2)  # [b, t', t], [b, t, d] -> [b, d, t']
+        m_p = torch.matmul(attn.squeeze(1), m_p.mT).mT  # [b, t', t], [b, t, d] -> [b, d, t']
+        logs_p = torch.matmul(attn.squeeze(1), logs_p.mT).mT  # [b, t', t], [b, t, d] -> [b, d, t']
 
         z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
         z = self.flow(z_p, y_mask, g=g, reverse=True)
@@ -126,4 +127,15 @@ class SynthesizerTrn(nn.Module):
         z_p = self.flow(z, y_mask, g=g_src)
         z_hat = self.flow(z_p, y_mask, g=g_tgt, reverse=True)
         o_hat = self.dec(z_hat * y_mask, g=g_tgt)
+        return o_hat, y_mask, (z, z_p, z_hat)
+
+    def voice_restoration(self, y, y_lengths, sid=None):
+        if self.n_speakers > 0:
+            g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
+        else:
+            g = None
+        z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=g)
+        z_p = self.flow(z, y_mask, g=g)
+        z_hat = self.flow(z_p, y_mask, g=g, reverse=True)
+        o_hat = self.dec(z_hat * y_mask, g=g)
         return o_hat, y_mask, (z, z_p, z_hat)

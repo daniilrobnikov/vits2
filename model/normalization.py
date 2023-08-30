@@ -13,9 +13,8 @@ class LayerNorm(nn.Module):
         self.beta = nn.Parameter(torch.zeros(channels))
 
     def forward(self, x: torch.Tensor):
-        x = x.transpose(1, -1)
-        x = F.layer_norm(x, (self.channels,), self.gamma, self.beta, self.eps)
-        return x.transpose(1, -1)
+        x = F.layer_norm(x.mT, (self.channels,), self.gamma, self.beta, self.eps)
+        return x.mT
 
 
 class CondLayerNorm(nn.Module):
@@ -31,6 +30,5 @@ class CondLayerNorm(nn.Module):
         gamma = self.linear_gamma(cond)
         beta = self.linear_beta(cond)
 
-        x = x.transpose(1, -1)
-        x = F.layer_norm(x, (self.channels,), gamma, beta, self.eps)
-        return x.transpose(1, -1)
+        x = F.layer_norm(x.mT, (self.channels,), gamma, beta, self.eps)
+        return x.mT

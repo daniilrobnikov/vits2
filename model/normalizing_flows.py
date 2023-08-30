@@ -51,9 +51,9 @@ class ResidualCouplingLayer(nn.Module):
             else None
         )
 
-        self.pre = nn.Conv1d(self.half_channels, hidden_channels, 1)
+        self.pre = nn.Linear(self.half_channels, hidden_channels)
         self.enc = WN(hidden_channels, kernel_size, dilation_rate, n_layers, p_dropout=p_dropout, gin_channels=gin_channels)
-        self.post = nn.Conv1d(hidden_channels, self.half_channels * (2 - mean_only), 1)
+        self.post = nn.Linear(hidden_channels, self.half_channels * (2 - mean_only))
         self.post.weight.data.zero_()
         self.post.bias.data.zero_()
 
@@ -63,9 +63,9 @@ class ResidualCouplingLayer(nn.Module):
         if self.pre_transformer is not None:
             x0_ = self.pre_transformer(x0 * x_mask, x_mask)
             x0_ = x0_ + x0  # residual connection
-        h = self.pre(x0_) * x_mask
+        h = self.pre(x0_.mT).mT * x_mask
         h = self.enc(h, x_mask, g=g)
-        stats = self.post(h) * x_mask
+        stats = self.post(h.mT).mT * x_mask
         if not self.mean_only:
             m, logs = torch.split(stats, [self.half_channels] * 2, 1)
         else:

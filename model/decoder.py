@@ -3,8 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils import weight_norm, remove_weight_norm
 
-from modules import LRELU_SLOPE
-from utils.commons import init_weights, get_padding
+from model.modules import LRELU_SLOPE
+from utils.model import init_weights, get_padding
 
 
 class Generator(nn.Module):
@@ -29,12 +29,12 @@ class Generator(nn.Module):
         self.ups.apply(init_weights)
 
         if gin_channels != 0:
-            self.cond = nn.Conv1d(gin_channels, upsample_initial_channel, 1)
+            self.cond = nn.Linear(gin_channels, upsample_initial_channel)
 
     def forward(self, x, g=None):
         x = self.conv_pre(x)
         if g is not None:
-            x = x + self.cond(g)
+            x = x + self.cond(g.mT).mT
 
         for i in range(self.num_upsamples):
             x = F.leaky_relu(x, LRELU_SLOPE)
