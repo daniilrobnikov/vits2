@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.nn.utils import weight_norm, spectral_norm
 
 from model.modules import LRELU_SLOPE
-from utils.commons import get_padding
+from utils.model import get_padding
 
 
 class DiscriminatorP(nn.Module):
