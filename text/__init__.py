@@ -11,7 +11,7 @@ _symbol_to_id = {s: i for i, s in enumerate(symbols)}
 _id_to_symbol = {i: s for i, s in enumerate(symbols)}
 
 
-def text_to_sequence(text, cleaner_names):
+def text_to_sequence(text, cleaner_names, language="en-us"):
     """Converts a string of text to a sequence of IDs corresponding to the symbols in the text.
     Args:
       text: string to convert to a sequence
@@ -19,7 +19,7 @@ def text_to_sequence(text, cleaner_names):
     Returns:
       List of integers corresponding to the symbols in the text
     """
-    cleaned_text = _clean_text(text, cleaner_names)
+    cleaned_text = _clean_text(text, cleaner_names, language=language)
     return [_symbol_to_id[symbol] for symbol in cleaned_text]
 
 
@@ -38,9 +38,9 @@ def sequence_to_text(sequence):
     return "".join([_id_to_symbol[id] for id in sequence])
 
 
-def _clean_text(text, cleaner_names):
+def _clean_text(text, cleaner_names, language="en-us"):
     for name in cleaner_names:
         cleaner = getattr(cleaners, name)
         assert callable(cleaner), f"Unknown cleaner: {name}"
-        text = cleaner(text)
+        text = cleaner(text, language=language)
     return text
