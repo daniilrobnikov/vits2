@@ -56,7 +56,7 @@ conda env config vars set PYTHONPATH="/path/to/vits2"
 
 ## Download datasets
 
-There are three options you can choose from: LJ Speech, VCTK, and custom dataset.
+There are three options you can choose from: LJ Speech, VCTK, or custom dataset.
 
 1. LJ Speech: [LJ Speech dataset](#lj-speech-dataset). Used for single speaker TTS.
 2. VCTK: [VCTK dataset](#vctk-dataset). Used for multi-speaker TTS.
@@ -73,10 +73,10 @@ cd LJSpeech-1.1/wavs
 rm -rf wavs
 ```
 
-2. save high-resolution mel-spectrograms. See [audio_mel.py](preprocess/audio_mel.py)
+3. preprocess mel-spectrograms. See [mel_transform.py](preprocess/mel_transform.py)
 
 ```shell
-python preprocess/audio_mel.py --data_dir /path/to/LJSpeech-1.1 -c datasets/ljs_base/config.yaml
+python preprocess/mel_transform.py --data_dir /path/to/custom_dataset -c datasets/custom_base/config.yaml
 ```
 
 3. prepare filelists and create a link to the dataset folder. See [prepare/filelists.ipynb](datasets/ljs_base/prepare/filelists.ipynb)
@@ -92,10 +92,10 @@ unzip VCTK-Corpus-0.92.zip
 
 2. (optional): downsample the audio files to 22050 Hz. See [audio_resample.ipynb](preprocess/audio_resample.ipynb)
 
-3. save high-resolution mel-spectrograms. See [audio_mel.py](preprocess/audio_mel.py)
+3. preprocess mel-spectrograms. See [mel_transform.py](preprocess/mel_transform.py)
 
 ```shell
-python preprocess/audio_mel.py --data_dir /path/to/VCTK-Corpus-0.92 -c datasets/vctk_base/config.yaml
+python preprocess/mel_transform.py --data_dir /path/to/custom_dataset -c datasets/custom_base/config.yaml
 ```
 
 4. prepare filelists and create a link to the dataset folder. See [prepare/filelists.ipynb](datasets/ljs_base/prepare/filelists.ipynb)
@@ -112,19 +112,18 @@ data:
   validation_files: datasets/custom_base/filelists/val.txt
   text_cleaners:
     - phonemize_text  # text cleaners. See text/cleaners.py
-  bits_per_sample: 16 # bit depth of wav files
+  language: en-us # language of your dataset. See espeak-ng
   sample_rate: 22050 # sampling rate if you resampled your wav files
   ...
   n_speakers: 0 # 0 for single speaker, > 0 for multi-speaker
+  cleaned_text: True # True if you ran step 6.
 ```
 
-4. save high-resolution mel-spectrograms. See [audio_mel.py](preprocess/audio_mel.py)
+4. preprocess mel-spectrograms. See [mel_transform.py](preprocess/mel_transform.py)
 
 ```shell
-python preprocess/audio_mel.py --data_dir /path/to/custom_dataset -c datasets/custom_base/config.yaml
+python preprocess/mel_transform.py --data_dir /path/to/custom_dataset -c datasets/custom_base/config.yaml
 ```
-
-5. install espeak-ng (optional)
 
 6. preprocess text and create a link to the dataset folder. See [prepare/filelists.ipynb](datasets/ljs_base/prepare/filelists.ipynb)
 
@@ -159,20 +158,24 @@ See [inference.ipynb](inference.ipynb) and [inference_batch.ipynb](inference_bat
 
 - [ ] model (vits2)
   - [x] update TextEncoder to support speaker conditioning
-  - [x] support for high-resolution mel-spectrograms in training. See [audio_mel.py](preprocess/audio_mel.py)
+  - [x] support for high-resolution mel-spectrograms in training. See [mel_transform.py](preprocess/mel_transform.py)
   - [x] Monotonic Alignment Search with Gaussian noise
   - [x] Normalizing Flows using Transformer Block
   - [ ] Stochastic Duration Predictor with Time Step-wise Conditional Discriminator
 - [ ] model (YourTTS)
   - [ ] Speaker Encoder
   - [ ] Language Conditioning
+- [ ] model (NaturalSpeech)
+  - [ ] KL Divergence Loss after Prior Enhancing
 - [ ] other
   - [x] support for batch inference
   - [x] test numba.jit and numba.cuda.jit implementations of MAS. See [monotonic_align.py](monotonic_align.py)
   - [ ] support for streaming inference. Please refer [vits_chinese](https://github.com/PlayVoice/vits_chinese/blob/master/text/symbols.py)
-  - [ ] Conditional Layer Normalization
+  - [ ] KL Divergence Loss between TextEncoder and Projection
   - [ ] compare IPA with ARPABET phonemizer in training
+  - [ ] test different phoneme tokenizers
   - [ ] use optuna for hyperparameter tuning
+  - [ ] Conditional Layer Normalization
   - [ ] test loss functions
 - [ ] future work
   - [ ] update model to vits2. Please refer [VITS2](https://arxiv.org/abs/2307.16430)

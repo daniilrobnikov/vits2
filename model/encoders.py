@@ -4,7 +4,7 @@ import torch.nn as nn
 
 from model.modules import WN
 from model.transformer import RelativePositionTransformer
-from utils.commons import sequence_mask
+from utils.model import sequence_mask
 
 
 # * Ready and Tested
@@ -58,7 +58,7 @@ class TextEncoder(nn.Module):
             lang_channels=lang_channels,
             speaker_cond_layer=speaker_cond_layer,
         )
-        self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
+        self.proj = nn.Linear(hidden_channels, out_channels * 2)
 
     def forward(self, x: torch.Tensor, x_lengths: torch.Tensor, g: torch.Tensor = None, lang: torch.Tensor = None):
         """
@@ -66,12 +66,11 @@ class TextEncoder(nn.Module):
             - x: :math:`[B, T]`
             - x_length: :math:`[B]`
         """
-        x = self.emb(x) * math.sqrt(self.hidden_channels)  # [b, t, h]
-        x = torch.transpose(x, 1, -1)  # [b, h, t]
+        x = self.emb(x).mT * math.sqrt(self.hidden_channels)  # [b, h, t]
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
 
         x = self.encoder(x, x_mask, g=g, lang=lang)
-        stats = self.proj(x) * x_mask
+        stats = self.proj(x.mT).mT * x_mask
 
         m, logs = torch.split(stats, self.out_channels, dim=1)
         return x, m, logs, x_mask
@@ -106,9 +105,9 @@ class PosteriorEncoder(nn.Module):
         super().__init__()
         self.out_channels = out_channels
 
-        self.pre = nn.Conv1d(in_channels, hidden_channels, 1)
+        self.pre = nn.Linear(in_channels, hidden_channels)
         self.enc = WN(hidden_channels, kernel_size, dilation_rate, n_layers, gin_channels=gin_channels)
-        self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
+        self.proj = nn.Linear(hidden_channels, out_channels * 2)
 
     def forward(self, x: torch.Tensor, x_lengths: torch.Tensor, g=None):
         """
@@ -118,9 +117,78 @@ class PosteriorEncoder(nn.Module):
             - g: :math:`[B, C, 1]`
         """
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
-        x = self.pre(x) * x_mask
+        x = self.pre(x.mT).mT * x_mask
         x = self.enc(x, x_mask, g=g)
-        stats = self.proj(x) * x_mask
+        stats = self.proj(x.mT).mT * x_mask
         mean, log_scale = torch.split(stats, self.out_channels, dim=1)
         z = (mean + torch.randn_like(mean) * torch.exp(log_scale)) * x_mask
         return z, mean, log_scale, x_mask
+
+
+# TODO Ready for testing
+class AudioEncoder(nn.Module):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        hidden_channels: int,
+        hidden_channels_ffn: int,
+        n_heads: int,
+        n_layers: int,
+        kernel_size: int,
+        dropout: float,
+        gin_channels=0,
+        lang_channels=0,
+        speaker_cond_layer=0,
+    ):
+        """Audio Encoder of VITS model.
+
+        Args:
+            in_channels (int): Number of input tensor channels.
+            out_channels (int): Number of channels for the output.
+            hidden_channels (int): Number of channels for the hidden layers.
+            hidden_channels_ffn (int): Number of channels for the convolutional layers.
+            n_heads (int): Number of attention heads for the Transformer layers.
+            n_layers (int): Number of Transformer layers.
+            kernel_size (int): Kernel size for the FFN layers in Transformer network.
+            dropout (float): Dropout rate for the Transformer layers.
+            gin_channels (int, optional): Number of channels for speaker embedding. Defaults to 0.
+            lang_channels (int, optional): Number of channels for language embedding. Defaults to 0.
+        """
+        super().__init__()
+        self.out_channels = out_channels
+        self.hidden_channels = hidden_channels
+
+        self.pre = nn.Linear(in_channels, hidden_channels)
+        self.encoder = RelativePositionTransformer(
+            in_channels=hidden_channels,
+            out_channels=hidden_channels,
+            hidden_channels=hidden_channels,
+            hidden_channels_ffn=hidden_channels_ffn,
+            n_heads=n_heads,
+            n_layers=n_layers,
+            kernel_size=kernel_size,
+            dropout=dropout,
+            window_size=4,
+            gin_channels=gin_channels,
+            lang_channels=lang_channels,
+            speaker_cond_layer=speaker_cond_layer,
+        )
+        self.post = nn.Linear(hidden_channels, out_channels * 2)
+
+    def forward(self, x: torch.Tensor, x_lengths: torch.Tensor, g: torch.Tensor = None, lang: torch.Tensor = None):
+        """
+        Shapes:
+            - x: :math:`[B, C, T]`
+            - x_lengths: :math:`[B, 1]`
+            - g: :math:`[B, C, 1]`
+            - lang: :math:`[B, C, 1]`
+        """
+        x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
+
+        x = self.pre(x.mT).mT  # [B, h, t]
+        x = self.encoder(x, x_mask, g=g, lang=lang)
+        stats = self.post(x.mT).mT * x_mask
+
+        m, logs = torch.split(stats, self.out_channels, dim=1)
+        return x, m, logs, x_mask
