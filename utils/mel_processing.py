@@ -7,23 +7,8 @@ mel_scale_basis = {}
 mel_spectrogram_basis = {}
 
 
-# TODO check if necessary clip_val=1e-5
-def dynamic_range_compression(x, C=1, clip_val=0):
-    return torch.log(torch.clamp(x, min=clip_val) * C)
-
-
-def dynamic_range_decompression(x, C=1):
-    return torch.exp(x) / C
-
-
-def spectral_normalize(magnitudes):
-    output = dynamic_range_compression(magnitudes)
-    return output
-
-
-def spectral_de_normalize(magnitudes):
-    output = dynamic_range_decompression(magnitudes)
-    return output
+def spectral_norm(x: torch.Tensor, clip_val=1e-9):
+    return torch.log(torch.clamp(x, min=clip_val))
 
 
 def wav_to_spec(y: torch.Tensor, n_fft, sample_rate, hop_length, win_length, center=False) -> torch.Tensor:
@@ -44,11 +29,11 @@ def wav_to_spec(y: torch.Tensor, n_fft, sample_rate, hop_length, win_length, cen
         ).to(device=y.device, dtype=y.dtype)
 
     spec = spectrogram_basis[hparams](y)
-    # spec = torch.sqrt(spec.pow(2) + 1e-6)
+    spec = torch.sqrt(spec.pow(2) + 1e-6)
     return spec
 
 
-def spec_to_mel(spec: torch.Tensor, n_fft, n_mels, sample_rate, f_min, f_max) -> torch.Tensor:
+def spec_to_mel(spec: torch.Tensor, n_fft, n_mels, sample_rate, f_min, f_max, norm=True) -> torch.Tensor:
     global mel_scale_basis
     dtype_device = str(spec.dtype) + "_" + str(spec.device)
     hparams = dtype_device + "_" + str(n_fft) + "_" + str(n_mels) + "_" + str(f_max)
@@ -56,11 +41,12 @@ def spec_to_mel(spec: torch.Tensor, n_fft, n_mels, sample_rate, f_min, f_max) ->
         mel_scale_basis[hparams] = T.MelScale(n_mels=n_mels, sample_rate=sample_rate, f_min=f_min, f_max=f_max, n_stft=n_fft // 2 + 1, norm="slaney", mel_scale="slaney").to(device=spec.device, dtype=spec.dtype)
 
     mel = torch.matmul(mel_scale_basis[hparams].fb.T, spec)
-    mel = spectral_normalize(mel)
+    if norm:
+        mel = spectral_norm(mel)
     return mel
 
 
-def wav_to_mel(y: torch.Tensor, n_fft, num_mels, sampling_rate, hop_size, win_size, fmin, fmax, center=False) -> torch.Tensor:
+def wav_to_mel(y: torch.Tensor, n_fft, num_mels, sampling_rate, hop_size, win_size, fmin, fmax, center=False, norm=True) -> torch.Tensor:
     assert torch.min(y) >= -1.0, f"min value is {torch.min(y)}"
     assert torch.max(y) <= 1.0, f"max value is {torch.max(y)}"
 
@@ -84,5 +70,6 @@ def wav_to_mel(y: torch.Tensor, n_fft, num_mels, sampling_rate, hop_size, win_si
         ).to(device=y.device, dtype=y.dtype)
 
     mel = mel_spectrogram_basis[hparams](y)
-    mel = spectral_normalize(mel)
+    if norm:
+        mel = spectral_norm(mel)
     return mel

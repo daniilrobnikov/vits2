@@ -3,9 +3,9 @@ import random
 import torch
 import torch.utils.data
 
-from utils.commons import intersperse
+from utils.model import intersperse
 from utils.mel_processing import wav_to_spec, wav_to_mel
-from utils.utils import load_wav_to_torch, load_filepaths_and_text
+from utils.task import load_wav_to_torch, load_filepaths_and_text
 from text import text_to_sequence, cleaned_text_to_sequence, PAD_ID
 
 
@@ -85,7 +85,7 @@ class TextAudioLoader(torch.utils.data.Dataset):
             spec = torch.load(spec_filename)
         else:
             if self.use_mel:
-                spec = wav_to_mel(wav, self.n_fft, self.n_mels, self.sample_rate, self.hop_length, self.win_length, self.f_min, self.f_max, center=False)
+                spec = wav_to_mel(wav, self.n_fft, self.n_mels, self.sample_rate, self.hop_length, self.win_length, self.f_min, self.f_max, center=False, norm=False)
             else:
                 spec = wav_to_spec(wav, self.n_fft, self.sample_rate, self.hop_length, self.win_length, center=False)
             spec = torch.squeeze(spec, 0)
@@ -229,7 +229,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
             spec = torch.load(spec_filename)
         else:
             if self.use_mel:
-                spec = wav_to_mel(wav, self.n_fft, self.n_mels, self.sample_rate, self.hop_length, self.win_length, self.f_min, self.f_max, center=False)
+                spec = wav_to_mel(wav, self.n_fft, self.n_mels, self.sample_rate, self.hop_length, self.win_length, self.f_min, self.f_max, center=False, norm=False)
             else:
                 spec = wav_to_spec(wav, self.n_fft, self.sample_rate, self.hop_length, self.win_length, center=False)
             spec = torch.squeeze(spec, 0)
