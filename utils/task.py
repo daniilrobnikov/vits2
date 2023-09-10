@@ -40,6 +40,8 @@ def load_checkpoint(checkpoint_path, model, optimizer=None):
     else:
         model.load_state_dict(new_state_dict)
     logger.info("Loaded checkpoint '{}' (iteration {})".format(checkpoint_path, iteration))
+    del checkpoint_dict
+    torch.cuda.empty_cache()
     return model, optimizer, learning_rate, iteration
 
 

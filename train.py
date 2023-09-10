@@ -16,7 +16,7 @@ from utils.hparams import get_hparams
 from model.models import SynthesizerTrn
 from model.discriminator import MultiPeriodDiscriminator
 from data_utils import TextAudioLoader, TextAudioCollate, DistributedBucketSampler
-from losses import generator_loss, discriminator_loss, feature_loss, kl_loss
+from losses import generator_loss, discriminator_loss, feature_loss, kl_loss, kl_loss_normal
 from utils.mel_processing import wav_to_mel, spec_to_mel, spectral_norm
 from utils.model import slice_segments, clip_grad_value_
 from text.symbols import symbols
@@ -76,6 +76,7 @@ def run(rank, n_gpus, hps):
         _, _, _, epoch_str = task.load_checkpoint(task.latest_checkpoint_path(hps.model_dir, "G_*.pth"), net_g, optim_g)
         _, _, _, epoch_str = task.load_checkpoint(task.latest_checkpoint_path(hps.model_dir, "D_*.pth"), net_d, optim_d)
         global_step = (epoch_str - 1) * len(train_loader)
+        net_g.module.mas_noise_scale = max(hps.model.mas_noise_scale - global_step * hps.model.mas_noise_scale_decay, 0.0)
     except:
         epoch_str = 1
         global_step = 0
@@ -117,7 +118,17 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
         y, y_lengths = y.cuda(rank, non_blocking=True), y_lengths.cuda(rank, non_blocking=True)
 
         with autocast(enabled=hps.train.fp16_run):
-            y_hat, l_length, attn, ids_slice, x_mask, z_mask, (z, z_p, m_p, logs_p, m_q, logs_q) = net_g(x, x_lengths, spec, spec_lengths)
+            (
+                y_hat,
+                l_length,
+                attn,
+                ids_slice,
+                x_mask,
+                z_mask,
+                (m_p_text, logs_p_text),
+                (m_p_dur, logs_p_dur, z_q_dur, logs_q_dur),
+                (m_p_audio, logs_p_audio, m_q_audio, logs_q_audio),
+            ) = net_g(x, x_lengths, spec, spec_lengths)
 
             mel = spectral_norm(spec) if hps.data.use_mel else spec_to_mel(spec, hps.data.n_fft, hps.data.n_mels, hps.data.sample_rate, hps.data.f_min, hps.data.f_max)
             y_hat_mel = wav_to_mel(y_hat.squeeze(1), hps.data.n_fft, hps.data.n_mels, hps.data.sample_rate, hps.data.hop_length, hps.data.win_length, hps.data.f_min, hps.data.f_max)
@@ -142,12 +153,16 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
             with autocast(enabled=False):
                 loss_dur = torch.sum(l_length.float())
                 loss_mel = F.l1_loss(y_mel, y_hat_mel) * hps.train.c_mel
-                loss_kl = kl_loss(z_p, logs_q, m_p, logs_p, z_mask) * hps.train.c_kl
-                # loss_kl_q = kl_loss(z_q, logs_p, m_q, logs_q, z_mask) * hps.train.c_kl
                 loss_gen, losses_gen = generator_loss(y_d_hat_g)
 
+                # TODO Test gain constant
+                if False:
+                    loss_kl_text = kl_loss_normal(m_q_text, logs_q_text, m_p_text, logs_p_text, x_mask) * hps.train.c_kl_text
+                loss_kl_dur = kl_loss(z_q_dur, logs_q_dur, m_p_dur, logs_p_dur, z_mask) * hps.train.c_kl_dur
+                loss_kl_audio = kl_loss_normal(m_p_audio, logs_p_audio, m_q_audio, logs_q_audio, z_mask) * hps.train.c_kl_audio
+
                 loss_fm = feature_loss(fmap_r, fmap_g)
-                loss_gen_all = loss_gen + loss_fm + loss_mel + loss_dur + loss_kl  # + loss_kl_q
+                loss_gen_all = loss_gen + loss_fm + loss_mel + loss_dur + loss_kl_dur + loss_kl_audio  # TODO + loss_kl_text
         optim_g.zero_grad()
         scaler.scale(loss_gen_all).backward()
         scaler.unscale_(optim_g)
@@ -158,26 +173,27 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
         if rank == 0:
             if global_step % hps.train.log_interval == 0:
                 lr = optim_g.param_groups[0]["lr"]
-                losses = [loss_disc, loss_gen, loss_fm, loss_mel, loss_dur, loss_kl]
-                losses_str = " ".join(f"{loss.item():.4f}" for loss in losses)
+                losses = [loss_disc, loss_gen, loss_fm, loss_mel, loss_dur, loss_kl_dur, loss_kl_audio]  # TODO loss_kl_text
+                losses_str = " ".join(f"{loss.item():.3f}" for loss in losses)
                 loader.set_postfix_str(f"{losses_str}, {global_step}, {lr:.9f}")
 
-                scalar_dict = {"loss/g/total": loss_gen_all, "loss/d/total": loss_disc_all, "learning_rate": lr, "grad_norm_d": grad_norm_d, "grad_norm_g": grad_norm_g}
-                scalar_dict.update({"loss/g/fm": loss_fm, "loss/g/mel": loss_mel, "loss/g/dur": loss_dur, "loss/g/kl": loss_kl})
+                # scalar_dict = {"loss/g/total": loss_gen_all, "loss/d/total": loss_disc_all, "learning_rate": lr, "grad_norm_d": grad_norm_d, "grad_norm_g": grad_norm_g}
+                # scalar_dict.update({"loss/g/fm": loss_fm, "loss/g/mel": loss_mel, "loss/g/dur": loss_dur, "loss/g/kl": loss_kl_dur})
 
-                scalar_dict.update({"loss/g/{}".format(i): v for i, v in enumerate(losses_gen)})
-                scalar_dict.update({"loss/d_r/{}".format(i): v for i, v in enumerate(losses_disc_r)})
-                scalar_dict.update({"loss/d_g/{}".format(i): v for i, v in enumerate(losses_disc_g)})
-                image_dict = {
-                    "slice/mel_org": task.plot_spectrogram_to_numpy(y_mel[0].data.cpu().numpy()),
-                    "slice/mel_gen": task.plot_spectrogram_to_numpy(y_hat_mel[0].data.cpu().numpy()),
-                    "all/mel": task.plot_spectrogram_to_numpy(mel[0].data.cpu().numpy()),
-                    "all/attn": task.plot_alignment_to_numpy(attn[0, 0].data.cpu().numpy()),
-                }
-                task.summarize(writer=writer, global_step=global_step, images=image_dict, scalars=scalar_dict, sample_rate=hps.data.sample_rate)
+                # scalar_dict.update({"loss/g/{}".format(i): v for i, v in enumerate(losses_gen)})
+                # scalar_dict.update({"loss/d_r/{}".format(i): v for i, v in enumerate(losses_disc_r)})
+                # scalar_dict.update({"loss/d_g/{}".format(i): v for i, v in enumerate(losses_disc_g)})
+                # image_dict = {
+                #     "slice/mel_org": task.plot_spectrogram_to_numpy(y_mel[0].data.cpu().numpy()),
+                #     "slice/mel_gen": task.plot_spectrogram_to_numpy(y_hat_mel[0].data.cpu().numpy()),
+                #     "all/mel": task.plot_spectrogram_to_numpy(mel[0].data.cpu().numpy()),
+                #     "all/attn": task.plot_alignment_to_numpy(attn[0, 0].data.cpu().numpy()),
+                # }
+                # task.summarize(writer=writer, global_step=global_step, images=image_dict, scalars=scalar_dict, sample_rate=hps.data.sample_rate)
 
+            # Save checkpoint on CPU to prevent GPU OOM
             if global_step % hps.train.eval_interval == 0:
-                evaluate(hps, net_g, eval_loader, writer_eval)
+                # evaluate(hps, net_g, eval_loader, writer_eval)
                 task.save_checkpoint(net_g, optim_g, hps.train.learning_rate, epoch, os.path.join(hps.model_dir, "G_{}.pth".format(global_step)))
                 task.save_checkpoint(net_d, optim_d, hps.train.learning_rate, epoch, os.path.join(hps.model_dir, "D_{}.pth".format(global_step)))
         global_step += 1
