@@ -83,10 +83,16 @@ rm -rf wavs
 3. preprocess mel-spectrograms. See [mel_transform.py](preprocess/mel_transform.py)
 
 ```shell
-python preprocess/mel_transform.py --data_dir /path/to/custom_dataset -c datasets/custom_base/config.yaml
+python preprocess/mel_transform.py --data_dir /path/to/LJSpeech-1.1 -c datasets/ljs_base/config.yaml
 ```
 
-3. prepare filelists and create a link to the dataset folder. See [prepare/filelists.ipynb](datasets/ljs_base/prepare/filelists.ipynb)
+3. preprocess text. See [prepare/filelists.ipynb](datasets/ljs_base/prepare/filelists.ipynb)
+
+4. rename or create a link to the dataset folder.
+
+```shell
+ln -s /path/to/LJSpeech-1.1 DUMMY1
+```
 
 ### VCTK dataset
 
@@ -102,10 +108,16 @@ unzip VCTK-Corpus-0.92.zip
 3. preprocess mel-spectrograms. See [mel_transform.py](preprocess/mel_transform.py)
 
 ```shell
-python preprocess/mel_transform.py --data_dir /path/to/custom_dataset -c datasets/custom_base/config.yaml
+python preprocess/mel_transform.py --data_dir /path/to/VCTK-Corpus-0.92 -c datasets/vctk_base/config.yaml
 ```
 
-4. prepare filelists and create a link to the dataset folder. See [prepare/filelists.ipynb](datasets/ljs_base/prepare/filelists.ipynb)
+4. preprocess text. See [prepare/filelists.ipynb](datasets/ljs_base/prepare/filelists.ipynb)
+
+5. rename or create a link to the dataset folder.
+
+```shell
+ln -s /path/to/VCTK-Corpus-0.92 DUMMY2
+```
 
 ### Custom dataset
 
@@ -134,9 +146,15 @@ data:
 python preprocess/mel_transform.py --data_dir /path/to/custom_dataset -c datasets/custom_base/config.yaml
 ```
 
-6. preprocess text and create a link to the dataset folder. See [prepare/filelists.ipynb](datasets/ljs_base/prepare/filelists.ipynb)
+6. preprocess text. See [prepare/filelists.ipynb](datasets/ljs_base/prepare/filelists.ipynb)
 
 **NOTE:** You may need to install `espeak-ng` if you want to use `phonemize_text` cleaner. Please refer [espeak-ng](https://github.com/espeak-ng/espeak-ng)
+
+7. rename or create a link to the dataset folder.
+
+```shell
+ln -s /path/to/custom_dataset DUMMY3
+```
 
 ## Training Examples
 
@@ -168,8 +186,8 @@ See [inference.ipynb](inference.ipynb) and [inference_batch.ipynb](inference_bat
   - [x] Normalizing Flows using Transformer Block
   - [ ] Stochastic Duration Predictor with Time Step-wise Conditional Discriminator
 - [ ] model (YourTTS)
-  - [ ] Speaker Encoder
   - [ ] Language Conditioning
+  - [ ] Speaker Encoder
 - [ ] model (NaturalSpeech)
   - [x] KL Divergence Loss after Prior Enhancing
   - [ ] GAN loss for e2e training
@@ -177,13 +195,13 @@ See [inference.ipynb](inference.ipynb) and [inference_batch.ipynb](inference_bat
   - [x] support for batch inference
   - [x] special tokens in tokenizer
   - [x] test numba.jit and numba.cuda.jit implementations of MAS. See [monotonic_align.py](monotonic_align.py)
-  - [ ] test KL Divergence Loss between TextEncoder and Projection
+  - [ ] KL Divergence Loss between TextEncoder and Projection
   - [ ] support for streaming inference. Please refer [vits_chinese](https://github.com/PlayVoice/vits_chinese/blob/master/text/symbols.py)
   - [ ] use optuna for hyperparameter tuning
 - [ ] future work
   - [ ] update model to vits2. Please refer [VITS2](https://arxiv.org/abs/2307.16430)
-  - [ ] update model to zero-shot learning. Please refer [YourTTS](https://arxiv.org/abs/2112.02418)
-  - [ ] update model to naturalspeech. Please refer [NaturalSpeech](https://arxiv.org/abs/2205.04421)
+  - [ ] update model to YourTTS with zero-shot learning. See [YourTTS](https://arxiv.org/abs/2112.02418)
+  - [ ] update model to NaturalSpeech. Please refer [NaturalSpeech](https://arxiv.org/abs/2205.04421)
 
 ## Acknowledgements
 
