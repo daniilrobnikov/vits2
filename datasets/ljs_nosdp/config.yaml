@@ -1,5 +1,5 @@
 train:
-  log_interval: 200
+  log_interval: 100
   eval_interval: 1000
   seed: 1234
   epochs: 20000
@@ -13,26 +13,29 @@ train:
   init_lr_ratio: 1
   warmup_epochs: 0
   c_mel: 45
-  c_kl: 1
+  c_kl_text: 0 # default: 0
+  c_kl_dur: 2 # default: 2
+  c_kl_audio: 0.05 # 0.05 Allow more audio variation. default: 1
 
 data:
   training_files: datasets/ljs_base/filelists/train.txt
   validation_files: datasets/ljs_base/filelists/val.txt
   text_cleaners:
     - phonemize_text
+    - tokenize_text
+    - add_bos_eos
+  cleaned_text: true
   language: en-us
   bits_per_sample: 16
   sample_rate: 22050
   n_fft: 2048
   hop_length: 256
   win_length: 1024
-  n_mels: 80 # 100 for statistically significant improvement. default: 80
+  n_mels: 80 # 100 works better with "slaney" mel-transform. default: 80
   f_min: 0
   f_max:
   n_speakers: 0
   use_mel: true
-  add_blank: false
-  cleaned_text: true
 
 model:
   inter_channels: 192
@@ -40,7 +43,8 @@ model:
   filter_channels: 768
   n_heads: 2
   n_layers: 6
-  n_layers_q: 16
+  n_layers_q: 12 # default: 16
+  n_flows: 8 # default: 4
   kernel_size: 3
   p_dropout: 0.1
   speaker_cond_layer: 0 # 0 to disable speaker conditioning
@@ -53,5 +57,5 @@ model:
   mas_noise_scale: 0.01 # 0.0 to disable Gaussian noise in MAS
   mas_noise_scale_decay: 2.0e-06
   use_spectral_norm: false
-  use_transformer_flow: true
+  use_transformer_flow: false
   use_sdp: false
