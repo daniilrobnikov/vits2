@@ -1,46 +1,38 @@
-""" from https://github.com/keithito/tacotron """
 from text import cleaners
 from text.symbols import symbols
-
-# Special symbol ids
-PAD_ID = symbols.index("_")
-SPACE_ID = symbols.index(" ")
-
-# Mappings from symbol to numeric ID and vice versa:
-_symbol_to_id = {s: i for i, s in enumerate(symbols)}
-_id_to_symbol = {i: s for i, s in enumerate(symbols)}
+from typing import List
 
 
-def text_to_sequence(text, cleaner_names, language="en-us"):
+def tokenizer(text: str, cleaner_names: List[str], language="en-us", cleaned_text=False) -> List[int]:
     """Converts a string of text to a sequence of IDs corresponding to the symbols in the text.
     Args:
-      text: string to convert to a sequence
-      cleaner_names: names of the cleaner functions to run the text through
+        text: string to convert to a sequence of IDs
+        cleaner_names: names of the cleaner functions from text/cleaners.py
+        language: language ID from https://github.com/espeak-ng/espeak-ng/blob/master/docs/languages.md
+        cleaned_text: whether the text has already been cleaned
     Returns:
-      List of integers corresponding to the symbols in the text
+        List of integers corresponding to the symbols in the text
     """
-    cleaned_text = _clean_text(text, cleaner_names, language=language)
-    return [_symbol_to_id[symbol] for symbol in cleaned_text]
+    if not cleaned_text:
+        return _clean_text(text, cleaner_names, language=language)
+    else:
+        return list(map(int, text.split("\t")))
 
 
-def cleaned_text_to_sequence(cleaned_text):
-    """Converts a string of text to a sequence of IDs corresponding to the symbols in the text.
-    Args:
-      text: string to convert to a sequence
-    Returns:
-      List of integers corresponding to the symbols in the text
-    """
-    return [_symbol_to_id[symbol] for symbol in cleaned_text]
+def detokenizer(sequence: List[int]) -> str:
+    """Converts a sequence of tokens back to a string"""
+    return "".join(symbols.lookup_tokens(sequence))
 
 
-def sequence_to_text(sequence):
-    """Converts a sequence of IDs back to a string"""
-    return "".join([_id_to_symbol[id] for id in sequence])
-
-
-def _clean_text(text, cleaner_names, language="en-us"):
+def _clean_text(text: str, cleaner_names: List[str], language="en-us") -> str:
     for name in cleaner_names:
         cleaner = getattr(cleaners, name)
         assert callable(cleaner), f"Unknown cleaner: {name}"
         text = cleaner(text, language=language)
     return text
+
+
+if __name__ == "__main__":
+    cleaner_names = ["phonemize_text", "tokenize_text", "add_bos_eos", "detokenize_sequence"]
+    text = "Well, I like pizza. <laugh> You know … Who doesn't like pizza? <laugh>"
+    print(tokenizer(text, cleaner_names, language="en-us", cleaned_text=False))

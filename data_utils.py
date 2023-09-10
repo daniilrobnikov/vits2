@@ -3,10 +3,9 @@ import random
 import torch
 import torch.utils.data
 
-from utils.model import intersperse
 from utils.mel_processing import wav_to_spec, wav_to_mel
 from utils.task import load_wav_to_torch, load_filepaths_and_text
-from text import text_to_sequence, cleaned_text_to_sequence, PAD_ID
+from text import tokenizer
 
 
 class TextAudioLoader(torch.utils.data.Dataset):
@@ -28,11 +27,10 @@ class TextAudioLoader(torch.utils.data.Dataset):
         self.f_max = hps_data.f_max
         self.use_mel = hps_data.use_mel
 
+        self.language = getattr(hps_data, "language", "en-us")
         self.cleaned_text = getattr(hps_data, "cleaned_text", False)
-
-        self.add_blank = hps_data.add_blank
         self.min_text_len = getattr(hps_data, "min_text_len", 1)
-        self.max_text_len = getattr(hps_data, "max_text_len", 190)
+        # TODO self.max_text_len = getattr(hps_data, "max_text_len", 1000) Test values
 
         random.seed(1234)
         random.shuffle(self.audiopaths_and_text)
@@ -49,7 +47,7 @@ class TextAudioLoader(torch.utils.data.Dataset):
         audiopaths_and_text_new = []
         lengths = []
         for audiopath, text in self.audiopaths_and_text:
-            if self.min_text_len <= len(text) and len(text) <= self.max_text_len:
+            if self.min_text_len <= len(text):
                 audiopaths_and_text_new.append([audiopath, text])
                 lengths.append(os.path.getsize(audiopath) // (2 * self.hop_length))
         self.audiopaths_and_text = audiopaths_and_text_new
@@ -64,12 +62,7 @@ class TextAudioLoader(torch.utils.data.Dataset):
         return (text, spec, wav)
 
     def get_text(self, text):
-        if self.cleaned_text:
-            text_norm = cleaned_text_to_sequence(text)
-        else:
-            text_norm = text_to_sequence(text, self.text_cleaners)
-        if self.add_blank:
-            text_norm = intersperse(text_norm, PAD_ID)
+        text_norm = tokenizer(text, self.text_cleaners, language=self.language, cleaned_text=self.cleaned_text)
         text_norm = torch.LongTensor(text_norm)
         return text_norm
 
@@ -171,11 +164,9 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         self.f_max = hps_data.f_max
         self.use_mel = hps_data.use_mel
 
+        self.language = getattr(hps_data, "language", "en-us")
         self.cleaned_text = getattr(hps_data, "cleaned_text", False)
-
-        self.add_blank = hps_data.add_blank
         self.min_text_len = getattr(hps_data, "min_text_len", 1)
-        self.max_text_len = getattr(hps_data, "max_text_len", 190)
 
         random.seed(1234)
         random.shuffle(self.audiopaths_sid_text)
@@ -192,7 +183,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         audiopaths_sid_text_new = []
         lengths = []
         for audiopath, sid, text in self.audiopaths_sid_text:
-            if self.min_text_len <= len(text) and len(text) <= self.max_text_len:
+            if self.min_text_len <= len(text):
                 audiopaths_sid_text_new.append([audiopath, sid, text])
                 lengths.append(os.path.getsize(audiopath) // (2 * self.hop_length))
         self.audiopaths_sid_text = audiopaths_sid_text_new
@@ -208,12 +199,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         return (text, spec, wav, sid)
 
     def get_text(self, text):
-        if self.cleaned_text:
-            text_norm = cleaned_text_to_sequence(text)
-        else:
-            text_norm = text_to_sequence(text, self.text_cleaners)
-        if self.add_blank:
-            text_norm = intersperse(text_norm, PAD_ID)
+        text_norm = tokenizer(text, self.text_cleaners, language=self.language, cleaned_text=self.cleaned_text)
         text_norm = torch.LongTensor(text_norm)
         return text_norm
 

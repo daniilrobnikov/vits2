@@ -1,5 +1,3 @@
-""" from https://github.com/keithito/tacotron """
-
 """
 Cleaners are transformations that run over the input text at both training and eval time.
 
@@ -11,30 +9,54 @@ import re
 from typing import List
 from phonemizer import phonemize
 
-from .numbers import normalize_numbers
+from text.normalize_numbers import normalize_numbers
+from text.symbols import _punctuation, symbols, PAD_ID, BOS_ID, EOS_ID
 
 
-# Regular expression matching whitespace:
 _whitespace_re = re.compile(r"\s+")
+_special_symbols_re = re.compile(r"<.*?>")
+_preserved_symbols_re = re.compile(rf"[{_punctuation}]|<.*?>")
 
 
-def expand_numbers(text: List[str] | str, *args, **kwargs):
-    if isinstance(text, str):
-        return normalize_numbers(text)
-    return [normalize_numbers(x) for x in text]
+# ---------------------------------------------------------------------------- #
+# |                                Text cleaners                             | #
+# ---------------------------------------------------------------------------- #
+def lowercase(text: str, *args, **kwargs):
+    return text.lower()
 
 
-def lowercase(text: List[str] | str, *args, **kwargs):
-    if isinstance(text, str):
-        return text.lower()
-    return [x.lower() for x in text]
+def collapse_whitespace(text: str, *args, **kwargs):
+    return re.sub(_whitespace_re, " ", text)
 
 
-def collapse_whitespace(text: List[str] | str, *args, **kwargs):
-    if isinstance(text, str):
-        return re.sub(_whitespace_re, " ", text)
-    return [re.sub(_whitespace_re, " ", x) for x in text]
+def expand_numbers(text: str, *args, **kwargs):
+    return normalize_numbers(text)
 
 
 def phonemize_text(text: List[str] | str, *args, language="en-us", **kwargs):
-    return phonemize(text, language=language, backend="espeak", strip=True, preserve_punctuation=True, with_stress=True, tie=True, njobs=8)
+    return phonemize(text, language=language, backend="espeak", strip=True, preserve_punctuation=True, punctuation_marks=_preserved_symbols_re, with_stress=True, tie=True, njobs=8)
+
+
+# ---------------------------------------------------------------------------- #
+# |                               Token cleaners                             | #
+# ---------------------------------------------------------------------------- #
+def tokenize_text(text: str, *args, **kwargs):
+    tokens = list(text)
+    specials_tokens = [(m.start(), m.end()) for m in re.finditer(_special_symbols_re, text)]
+    for start, end in reversed(specials_tokens):
+        tokens[start:end] = [text[start:end]]
+    return symbols(tokens)
+
+
+def add_bos_eos(tokens: List[int], *args, **kwargs):
+    return [BOS_ID] + tokens + [EOS_ID]
+
+
+def add_blank(tokens: List[int], *args, **kwargs):
+    result = [PAD_ID] * (len(tokens) * 2 + 1)
+    result[1::2] = tokens
+    return result
+
+
+def detokenize_sequence(sequence: List[int], *args, **kwargs):
+    return "".join(symbols.lookup_tokens(sequence))
