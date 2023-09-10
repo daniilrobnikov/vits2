@@ -73,7 +73,8 @@ class TextEncoder(nn.Module):
         stats = self.proj(x.mT).mT * x_mask
 
         m, logs = torch.split(stats, self.out_channels, dim=1)
-        return x, m, logs, x_mask
+        z = m + torch.randn_like(m) * torch.exp(logs) * x_mask
+        return z, m, logs, x, x_mask
 
 
 # * Ready and Tested
@@ -120,9 +121,9 @@ class PosteriorEncoder(nn.Module):
         x = self.pre(x.mT).mT * x_mask
         x = self.enc(x, x_mask, g=g)
         stats = self.proj(x.mT).mT * x_mask
-        mean, log_scale = torch.split(stats, self.out_channels, dim=1)
-        z = (mean + torch.randn_like(mean) * torch.exp(log_scale)) * x_mask
-        return z, mean, log_scale, x_mask
+        m, logs = torch.split(stats, self.out_channels, dim=1)
+        z = m + torch.randn_like(m) * torch.exp(logs) * x_mask
+        return z, m, logs, x_mask
 
 
 # TODO Ready for testing
