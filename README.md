@@ -110,13 +110,15 @@ python preprocess/mel_transform.py --data_dir /path/to/custom_dataset -c dataset
 data:
   training_files: datasets/custom_base/filelists/train.txt
   validation_files: datasets/custom_base/filelists/val.txt
-  text_cleaners:
-    - phonemize_text  # text cleaners. See text/cleaners.py
+  text_cleaners: # See text/cleaners.py
+    - phonemize_text
+    - tokenize_text
+    - add_bos_eos
+  cleaned_text: true # True if you ran step 6.
   language: en-us # language of your dataset. See espeak-ng
-  sample_rate: 22050 # sampling rate if you resampled your wav files
+  sample_rate: 22050 # sample rate, based on your dataset
   ...
   n_speakers: 0 # 0 for single speaker, > 0 for multi-speaker
-  cleaned_text: True # True if you ran step 6.
 ```
 
 4. preprocess mel-spectrograms. See [mel_transform.py](preprocess/mel_transform.py)
@@ -166,17 +168,15 @@ See [inference.ipynb](inference.ipynb) and [inference_batch.ipynb](inference_bat
   - [ ] Speaker Encoder
   - [ ] Language Conditioning
 - [ ] model (NaturalSpeech)
-  - [ ] KL Divergence Loss after Prior Enhancing
+  - [x] KL Divergence Loss after Prior Enhancing
+  - [ ] GAN loss for e2e training
 - [ ] other
   - [x] support for batch inference
+  - [x] special tokens in tokenizer
   - [x] test numba.jit and numba.cuda.jit implementations of MAS. See [monotonic_align.py](monotonic_align.py)
+  - [ ] test KL Divergence Loss between TextEncoder and Projection
   - [ ] support for streaming inference. Please refer [vits_chinese](https://github.com/PlayVoice/vits_chinese/blob/master/text/symbols.py)
-  - [ ] KL Divergence Loss between TextEncoder and Projection
-  - [ ] compare IPA with ARPABET phonemizer in training
-  - [ ] test different phoneme tokenizers
   - [ ] use optuna for hyperparameter tuning
-  - [ ] Conditional Layer Normalization
-  - [ ] test loss functions
 - [ ] future work
   - [ ] update model to vits2. Please refer [VITS2](https://arxiv.org/abs/2307.16430)
   - [ ] update model to zero-shot learning. Please refer [YourTTS](https://arxiv.org/abs/2112.02418)
