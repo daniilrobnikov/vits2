@@ -25,6 +25,13 @@ Unofficial implementation of VITS2. This is a work in progress. Please refer to 
   </tr>
 </table>
 
+## Audio Samples
+
+[In progress]
+
+Audio sample after 52,000 steps of training on 1 GPU for LJSpeech dataset:
+https://github.com/daniilrobnikov/vits2/assets/91742765/d769c77a-bd92-4732-96e7-ab53bf50d783
+
 ## Installation:
 
 <a name="installation"></a>
@@ -149,10 +156,6 @@ python train_ms.py -c datasets/custom_base/config.yaml  -m custom_base
 See [inference.ipynb](inference.ipynb) and [inference_batch.ipynb](inference_batch.ipynb)
 
 ## Pretrained Models
-
-[In progress]
-
-## Audio Samples
 
 [In progress]
 
