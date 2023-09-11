@@ -4,7 +4,7 @@ import torch
 import torch.utils.data
 
 from utils.mel_processing import wav_to_spec, wav_to_mel
-from utils.task import load_wav_to_torch, load_filepaths_and_text
+from utils.task import load_vocab, load_wav_to_torch, load_filepaths_and_text
 from text import tokenizer
 
 
@@ -17,6 +17,7 @@ class TextAudioLoader(torch.utils.data.Dataset):
 
     def __init__(self, audiopaths_and_text, hps_data):
         self.audiopaths_and_text = load_filepaths_and_text(audiopaths_and_text)
+        self.vocab = load_vocab(hps_data.vocab_file)
         self.text_cleaners = hps_data.text_cleaners
         self.sample_rate = hps_data.sample_rate
         self.n_fft = hps_data.n_fft
@@ -30,7 +31,7 @@ class TextAudioLoader(torch.utils.data.Dataset):
         self.language = getattr(hps_data, "language", "en-us")
         self.cleaned_text = getattr(hps_data, "cleaned_text", False)
         self.min_text_len = getattr(hps_data, "min_text_len", 1)
-        # TODO self.max_text_len = getattr(hps_data, "max_text_len", 1000) Test values
+        self.max_text_len = getattr(hps_data, "max_text_len", 200)
 
         random.seed(1234)
         random.shuffle(self.audiopaths_and_text)
@@ -47,7 +48,8 @@ class TextAudioLoader(torch.utils.data.Dataset):
         audiopaths_and_text_new = []
         lengths = []
         for audiopath, text in self.audiopaths_and_text:
-            if self.min_text_len <= len(text):
+            text_len = text.count("\t") + 1
+            if self.min_text_len <= text_len and text_len <= self.max_text_len:
                 audiopaths_and_text_new.append([audiopath, text])
                 lengths.append(os.path.getsize(audiopath) // (2 * self.hop_length))
         self.audiopaths_and_text = audiopaths_and_text_new
@@ -62,7 +64,7 @@ class TextAudioLoader(torch.utils.data.Dataset):
         return (text, spec, wav)
 
     def get_text(self, text):
-        text_norm = tokenizer(text, self.text_cleaners, language=self.language, cleaned_text=self.cleaned_text)
+        text_norm = tokenizer(text, self.vocab, self.text_cleaners, language=self.language, cleaned_text=self.cleaned_text)
         text_norm = torch.LongTensor(text_norm)
         return text_norm
 
@@ -154,6 +156,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
 
     def __init__(self, audiopaths_sid_text, hps_data):
         self.audiopaths_sid_text = load_filepaths_and_text(audiopaths_sid_text)
+        self.vocab = load_vocab(hps_data.vocab_file)
         self.text_cleaners = hps_data.text_cleaners
         self.sample_rate = hps_data.sample_rate
         self.n_fft = hps_data.n_fft
@@ -167,6 +170,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         self.language = getattr(hps_data, "language", "en-us")
         self.cleaned_text = getattr(hps_data, "cleaned_text", False)
         self.min_text_len = getattr(hps_data, "min_text_len", 1)
+        self.max_text_len = getattr(hps_data, "max_text_len", 200)
 
         random.seed(1234)
         random.shuffle(self.audiopaths_sid_text)
@@ -183,7 +187,8 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         audiopaths_sid_text_new = []
         lengths = []
         for audiopath, sid, text in self.audiopaths_sid_text:
-            if self.min_text_len <= len(text):
+            text_len = text.count("\t") + 1
+            if self.min_text_len <= text_len and text_len <= self.max_text_len:
                 audiopaths_sid_text_new.append([audiopath, sid, text])
                 lengths.append(os.path.getsize(audiopath) // (2 * self.hop_length))
         self.audiopaths_sid_text = audiopaths_sid_text_new
@@ -199,7 +204,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         return (text, spec, wav, sid)
 
     def get_text(self, text):
-        text_norm = tokenizer(text, self.text_cleaners, language=self.language, cleaned_text=self.cleaned_text)
+        text_norm = tokenizer(text, self.vocab, self.text_cleaners, language=self.language, cleaned_text=self.cleaned_text)
         text_norm = torch.LongTensor(text_norm)
         return text_norm
 

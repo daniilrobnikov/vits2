@@ -7,15 +7,19 @@ hyperparameter.
 
 import re
 from typing import List
+from torchtext.vocab import Vocab
 from phonemizer import phonemize
+from phonemizer.separator import Separator
+
 
 from text.normalize_numbers import normalize_numbers
-from text.symbols import _punctuation, symbols, PAD_ID, BOS_ID, EOS_ID
+
+from text.symbols import _punctuation, PAD_ID, UNK_ID, BOS_ID, EOS_ID
 
 
 _whitespace_re = re.compile(r"\s+")
-_special_symbols_re = re.compile(r"<.*?>")
 _preserved_symbols_re = re.compile(rf"[{_punctuation}]|<.*?>")
+separator = Separator(word="<space>", phone=" ")
 
 
 # ---------------------------------------------------------------------------- #
@@ -34,18 +38,23 @@ def expand_numbers(text: str, *args, **kwargs):
 
 
 def phonemize_text(text: List[str] | str, *args, language="en-us", **kwargs):
-    return phonemize(text, language=language, backend="espeak", strip=True, preserve_punctuation=True, punctuation_marks=_preserved_symbols_re, with_stress=True, tie=True, njobs=8)
+    return phonemize(text, language=language, backend="espeak", separator=separator, strip=True, preserve_punctuation=True, punctuation_marks=_preserved_symbols_re, with_stress=True, njobs=8)
+
+
+def add_spaces(text: str, *args, **kwargs):
+    spaced_text = re.sub(_preserved_symbols_re, r" \g<0> ", text)
+    cleaned_text = re.sub(_whitespace_re, " ", spaced_text)
+    return cleaned_text.strip()
 
 
 # ---------------------------------------------------------------------------- #
 # |                               Token cleaners                             | #
 # ---------------------------------------------------------------------------- #
-def tokenize_text(text: str, *args, **kwargs):
-    tokens = list(text)
-    specials_tokens = [(m.start(), m.end()) for m in re.finditer(_special_symbols_re, text)]
-    for start, end in reversed(specials_tokens):
-        tokens[start:end] = [text[start:end]]
-    return symbols(tokens)
+
+
+def tokenize_text(text: str, vocab: Vocab, *args, **kwargs):
+    tokens = text.split()
+    return vocab(tokens)
 
 
 def add_bos_eos(tokens: List[int], *args, **kwargs):
@@ -58,5 +67,9 @@ def add_blank(tokens: List[int], *args, **kwargs):
     return result
 
 
-def detokenize_sequence(sequence: List[int], *args, **kwargs):
-    return "".join(symbols.lookup_tokens(sequence))
+def delete_unks(tokens: List[int], *args, **kwargs):
+    return [token for token in tokens if token != UNK_ID]
+
+
+def detokenize_sequence(sequence: List[int], vocab: Vocab, *args, **kwargs):
+    return "".join(vocab.lookup_tokens(sequence))

@@ -1,9 +1,7 @@
 import os
 import glob
 import sys
-import argparse
 import logging
-import json
 import subprocess
 import numpy as np
 import torch
@@ -126,6 +124,37 @@ def plot_alignment_to_numpy(alignment, info=None):
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
     plt.close()
     return data
+
+
+def load_vocab(vocab_file: str):
+    """Load vocabulary from text file
+    Args:
+        vocab_file (str): Path to vocabulary file
+    Returns:
+        torchtext.vocab.Vocab: Vocabulary object
+    """
+    from torchtext.vocab import vocab as transform_vocab
+    from text.symbols import UNK_ID, special_symbols
+
+    vocab = {}
+    with open(vocab_file, "r") as f:
+        for line in f:
+            token, index = line.split()
+            vocab[token] = int(index)
+    vocab = transform_vocab(vocab, specials=special_symbols)
+    vocab.set_default_index(UNK_ID)
+    return vocab
+
+
+def save_vocab(vocab, vocab_file: str):
+    """Save vocabulary as token index pairs in a text file, sorted by the indices
+    Args:
+        vocab (torchtext.vocab.Vocab): Vocabulary object
+        vocab_file (str): Path to vocabulary file
+    """
+    with open(vocab_file, "w") as f:
+        for token, index in sorted(vocab.get_stoi().items(), key=lambda kv: kv[1]):
+            f.write(f"{token}\t{index}\n")
 
 
 def load_wav_to_torch(full_path):

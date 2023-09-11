@@ -20,8 +20,10 @@ train:
 data:
   training_files: datasets/vctk_base/filelists/vctk_audio_sid_text_train_filelist.txt.cleaned
   validation_files: datasets/vctk_base/filelists/vctk_audio_sid_text_val_filelist.txt.cleaned
+  vocab_file: datasets/vctk_base/vocab.txt
   text_cleaners:
     - phonemize_text
+    - add_spaces
     - tokenize_text
     - add_bos_eos
   cleaned_text: true

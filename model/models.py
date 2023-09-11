@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from model.encoders import TextEncoder, PosteriorEncoder
+from model.encoders import TextEncoder, PosteriorEncoder, AudioEncoder
 from model.normalizing_flows import ResidualCouplingBlock
 from model.duration_predictors import DurationPredictor, StochasticDurationPredictor
 from model.decoder import Generator
@@ -52,6 +52,8 @@ class SynthesizerTrn(nn.Module):
 
         self.enc_p = TextEncoder(n_vocab, inter_channels, hidden_channels, filter_channels, n_heads, n_layers, kernel_size, p_dropout, gin_channels=gin_channels, speaker_cond_layer=speaker_cond_layer)
         self.enc_q = PosteriorEncoder(spec_channels, inter_channels, hidden_channels, 5, 1, n_layers_q, gin_channels=gin_channels)
+        # self.enc_q = AudioEncoder(spec_channels, inter_channels, 32, 768, n_heads, 2, kernel_size, p_dropout, gin_channels=gin_channels)
+        # self.enc_q = AudioEncoder(spec_channels, inter_channels, 32, 32, n_heads, 3, kernel_size, p_dropout, gin_channels=gin_channels)
         self.dec = Generator(inter_channels, resblock, resblock_kernel_sizes, resblock_dilation_sizes, upsample_rates, upsample_initial_channel, upsample_kernel_sizes, gin_channels=gin_channels)
         self.flow = ResidualCouplingBlock(inter_channels, hidden_channels, 5, 1, 4, n_flows=n_flows, gin_channels=gin_channels, mean_only=False, use_transformer_flow=use_transformer_flow)
 

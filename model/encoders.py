@@ -187,9 +187,10 @@ class AudioEncoder(nn.Module):
         """
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
 
-        x = self.pre(x.mT).mT  # [B, h, t]
+        x = self.pre(x.mT).mT * x_mask  # [B, C, t']
         x = self.encoder(x, x_mask, g=g, lang=lang)
         stats = self.post(x.mT).mT * x_mask
 
         m, logs = torch.split(stats, self.out_channels, dim=1)
-        return x, m, logs, x_mask
+        z = m + torch.randn_like(m) * torch.exp(logs) * x_mask
+        return z, m, logs, x_mask

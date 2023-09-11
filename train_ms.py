@@ -20,7 +20,6 @@ from data_utils import TextAudioSpeakerLoader, TextAudioSpeakerCollate, Distribu
 from losses import generator_loss, discriminator_loss, feature_loss, kl_loss, kl_loss_normal
 from utils.mel_processing import wav_to_mel, spec_to_mel, spectral_norm
 from utils.model import slice_segments, clip_grad_value_
-from text.symbols import symbols
 
 
 torch.backends.cudnn.benchmark = True
@@ -67,7 +66,9 @@ def run(rank, n_gpus, hps):
         eval_dataset = TextAudioSpeakerLoader(hps.data.validation_files, hps.data)
         eval_loader = DataLoader(eval_dataset, num_workers=8, shuffle=False, batch_size=hps.train.batch_size, pin_memory=True, drop_last=False, collate_fn=collate_fn)
 
-    net_g = SynthesizerTrn(len(symbols), hps.data.n_mels if hps.data.use_mel else hps.data.n_fft // 2 + 1, hps.train.segment_size // hps.data.hop_length, n_speakers=hps.data.n_speakers, **hps.model).cuda(rank)
+    net_g = SynthesizerTrn(
+        len(train_dataset.vocab), hps.data.n_mels if hps.data.use_mel else hps.data.n_fft // 2 + 1, hps.train.segment_size // hps.data.hop_length, n_speakers=hps.data.n_speakers, **hps.model
+    ).cuda(rank)
     net_d = MultiPeriodDiscriminator(hps.model.use_spectral_norm).cuda(rank)
     optim_g = torch.optim.AdamW(net_g.parameters(), hps.train.learning_rate, betas=hps.train.betas, eps=hps.train.eps)
     optim_d = torch.optim.AdamW(net_d.parameters(), hps.train.learning_rate, betas=hps.train.betas, eps=hps.train.eps)
